@@ -3,7 +3,7 @@
  * @email 1293290662@qq.com
  * @date 2024/01/01
  * 
- * Fragment基类，提供ViewModel支持、懒加载和通用UI操作方法
+ * Fragment基类，提供完整的生命周期管理、懒加载和通用UI操作方法
  * 
  * @param VM ViewModel类型参数
  */
@@ -30,29 +30,43 @@ abstract class BaseFragment<VM : ViewModel> : Fragment() {
      * 懒加载标记，确保数据只加载一次
      */
     private var isFirstLoad = true
+    
+    /**
+     * 视图是否创建完成
+     */
+    private var isViewCreated = false
 
     /**
-     * Fragment创建视图时调用，初始化ViewModel
+     * Fragment创建视图时调用
      */
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
+        beforeInit()
         viewModel = createViewModel()
         return super.onCreateView(inflater, container, savedInstanceState)
     }
 
     /**
-     * 视图创建完成后调用，开始观察数据和执行懒加载
+     * 视图创建完成后调用
      */
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        observeViewModel()
+        isViewCreated = true
+        
+        initView()
+        setupObservers()
+        initListener()
+        
+        // 检查是否需要立即加载数据
         if (isFirstLoad && !isHidden) {
             isFirstLoad = false
-            lazyLoad()
+            initData()
         }
+        
+        afterInit()
     }
 
     /**
@@ -61,28 +75,48 @@ abstract class BaseFragment<VM : ViewModel> : Fragment() {
      */
     override fun onHiddenChanged(hidden: Boolean) {
         super.onHiddenChanged(hidden)
-        if (!hidden && isFirstLoad) {
+        if (!hidden && isViewCreated && isFirstLoad) {
             isFirstLoad = false
-            lazyLoad()
+            initData()
         }
     }
+
+    /**
+     * 在初始化之前调用
+     */
+    protected open fun beforeInit() {}
+
+    /**
+     * 初始化视图，子类必须实现
+     */
+    protected abstract fun initView()
+
+    /**
+     * 设置数据观察，子类可重写
+     */
+    protected open fun setupObservers() {}
+
+    /**
+     * 初始化事件监听，子类可重写
+     */
+    protected open fun initListener() {}
+
+    /**
+     * 懒加载数据，子类可重写
+     * 只在第一次显示时执行
+     */
+    protected open fun initData() {}
+
+    /**
+     * 在初始化之后调用
+     */
+    protected open fun afterInit() {}
 
     /**
      * 抽象方法，子类必须实现以创建对应的ViewModel实例
      * @return VM类型的ViewModel实例
      */
     protected abstract fun createViewModel(): VM
-
-    /**
-     * 观察ViewModel数据变化的方法，子类可重写
-     */
-    protected open fun observeViewModel() {}
-
-    /**
-     * 懒加载方法，子类可重写实现延迟数据加载
-     * 只在第一次显示时执行
-     */
-    protected open fun lazyLoad() {}
 
     /**
      * 获取ViewModel的便捷方法，使用泛型推断
@@ -95,12 +129,12 @@ abstract class BaseFragment<VM : ViewModel> : Fragment() {
     /**
      * 显示加载状态，子类可重写实现具体UI
      */
-    protected fun showLoading() {}
+    protected open fun showLoading() {}
 
     /**
      * 隐藏加载状态，子类可重写实现具体UI
      */
-    protected fun hideLoading() {}
+    protected open fun hideLoading() {}
 
     /**
      * 显示错误信息，子类可重写实现具体UI
@@ -194,4 +228,44 @@ abstract class BaseFragment<VM : ViewModel> : Fragment() {
     protected fun logE(message: String, throwable: Throwable) {
         LogUtil.e(javaClass.simpleName, message, throwable)
     }
+
+    // ==================== 生命周期回调 ====================
+
+    override fun onStart() {
+        super.onStart()
+        onFragmentStart()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        onFragmentResume()
+    }
+
+    override fun onPause() {
+        onFragmentPause()
+        super.onPause()
+    }
+
+    override fun onStop() {
+        onFragmentStop()
+        super.onStop()
+    }
+
+    override fun onDestroyView() {
+        onFragmentDestroyView()
+        isViewCreated = false
+        super.onDestroyView()
+    }
+
+    override fun onDestroy() {
+        onFragmentDestroy()
+        super.onDestroy()
+    }
+
+    protected open fun onFragmentStart() {}
+    protected open fun onFragmentResume() {}
+    protected open fun onFragmentPause() {}
+    protected open fun onFragmentStop() {}
+    protected open fun onFragmentDestroyView() {}
+    protected open fun onFragmentDestroy() {}
 }

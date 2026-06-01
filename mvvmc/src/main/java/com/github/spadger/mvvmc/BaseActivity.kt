@@ -3,7 +3,7 @@
  * @email 1293290662@qq.com
  * @date 2024/01/01
  * 
- * Activity基类，提供ViewModel支持和通用UI操作方法
+ * Activity基类，提供完整的生命周期管理和通用UI操作方法
  * 
  * @param VM ViewModel类型参数
  */
@@ -24,25 +24,60 @@ abstract class BaseActivity<VM : ViewModel> : AppCompatActivity() {
     protected lateinit var viewModel: VM
 
     /**
-     * Activity创建时调用，初始化ViewModel并开始观察数据
+     * Activity创建时调用，按顺序执行初始化流程
      */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // 初始化流程
+        beforeInit()
         viewModel = createViewModel()
-        observeViewModel()
+        initView()
+        setupObservers()
+        initListener()
+        initData()
+        afterInit()
     }
+
+    /**
+     * 在初始化之前调用，可用于设置主题、全屏等
+     */
+    protected open fun beforeInit() {}
+
+    /**
+     * 初始化视图，子类必须实现
+     * 通常在这里调用 setContentView() 和初始化 View
+     */
+    protected abstract fun initView()
+
+    /**
+     * 设置数据观察，子类可重写
+     * 用于观察 ViewModel 中的 LiveData
+     */
+    protected open fun setupObservers() {}
+
+    /**
+     * 初始化事件监听，子类可重写
+     * 用于设置点击事件等
+     */
+    protected open fun initListener() {}
+
+    /**
+     * 初始化数据，子类可重写
+     * 用于加载初始数据
+     */
+    protected open fun initData() {}
+
+    /**
+     * 在初始化之后调用，可用于执行延迟操作
+     */
+    protected open fun afterInit() {}
 
     /**
      * 抽象方法，子类必须实现以创建对应的ViewModel实例
      * @return VM类型的ViewModel实例
      */
     protected abstract fun createViewModel(): VM
-
-    /**
-     * 观察ViewModel数据变化的方法，子类可重写
-     * 在onCreate中被调用，用于设置数据观察
-     */
-    protected open fun observeViewModel() {}
 
     /**
      * 获取ViewModel的便捷方法，使用泛型推断
@@ -55,12 +90,12 @@ abstract class BaseActivity<VM : ViewModel> : AppCompatActivity() {
     /**
      * 显示加载状态，子类可重写实现具体UI
      */
-    protected fun showLoading() {}
+    protected open fun showLoading() {}
 
     /**
      * 隐藏加载状态，子类可重写实现具体UI
      */
-    protected fun hideLoading() {}
+    protected open fun hideLoading() {}
 
     /**
      * 显示错误信息，子类可重写实现具体UI
@@ -154,4 +189,56 @@ abstract class BaseActivity<VM : ViewModel> : AppCompatActivity() {
     protected fun logE(message: String, throwable: Throwable) {
         LogUtil.e(javaClass.simpleName, message, throwable)
     }
+
+    // ==================== 生命周期回调 ====================
+
+    override fun onStart() {
+        super.onStart()
+        onActivityStart()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        onActivityResume()
+    }
+
+    override fun onPause() {
+        onActivityPause()
+        super.onPause()
+    }
+
+    override fun onStop() {
+        onActivityStop()
+        super.onStop()
+    }
+
+    override fun onDestroy() {
+        onActivityDestroy()
+        super.onDestroy()
+    }
+
+    /**
+     * Activity 进入前台时调用
+     */
+    protected open fun onActivityStart() {}
+
+    /**
+     * Activity 恢复时调用
+     */
+    protected open fun onActivityResume() {}
+
+    /**
+     * Activity 暂停时调用
+     */
+    protected open fun onActivityPause() {}
+
+    /**
+     * Activity 停止时调用
+     */
+    protected open fun onActivityStop() {}
+
+    /**
+     * Activity 销毁时调用
+     */
+    protected open fun onActivityDestroy() {}
 }
