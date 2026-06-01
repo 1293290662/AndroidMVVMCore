@@ -1,9 +1,8 @@
 package com.github.spadger.mvvmc.demo
 
 import android.os.Bundle
-import android.view.View
-import android.widget.TextView
-import com.github.spadger.mvvmc.BaseActivity
+import com.github.spadger.mvvmc.BaseBindingActivity
+import com.github.spadger.mvvmc.demo.databinding.ActivityMainBinding
 import com.github.spadger.mvvmc.demo.vm.UserDetailViewModel
 import com.github.spadger.mvvmc.ext.observeResult
 import com.github.spadger.mvvmc.util.DataStoreHolder
@@ -17,26 +16,33 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
- * 演示 Activity
- * 展示如何使用 MVVMCore 框架的各种封装
+ * 演示 Activity - 使用 View Binding
+ * 
+ * View Binding 是 Android Studio 3.6 引入的官方视图绑定方式，
+ * 替代 findViewById，类型安全且空安全
  */
-class MainActivity : BaseActivity<UserDetailViewModel>() {
-
-    private lateinit var tvUserName: TextView
+class MainActivity : BaseBindingActivity<UserDetailViewModel, ActivityMainBinding>() {
 
     /**
-     * 初始化视图（必须实现）
+     * 创建 View Binding（必须实现）
      */
-    override fun initView() {
-        setContentView(R.layout.activity_main)
-        tvUserName = findViewById(R.id.tv_user_name)
+    override fun createViewBinding(): ActivityMainBinding {
+        return ActivityMainBinding.inflate(layoutInflater)
     }
 
     /**
-     * 设置数据观察（可重写）
+     * 初始化视图（可重写）
+     */
+    override fun initView() {
+        // 使用 binding 直接访问视图，无需 findViewById
+        binding.tvUserName.text = "未登录"
+        binding.tvTitle.text = "MVVMCore Demo"
+    }
+
+    /**
+     * 设置数据观察
      */
     override fun setupObservers() {
-        // 观察 ViewModel 状态
         viewModel.state.observeResult(
             owner = this,
             onSuccess = { user -> handleUserLoadSuccess(user) },
@@ -47,30 +53,30 @@ class MainActivity : BaseActivity<UserDetailViewModel>() {
         // 监听 DataStore 数据变化
         DataStoreHolder.getInstance().getStringFlow(DataStoreKeys.USER_NAME)
             .observe(this) { name ->
-                tvUserName.text = name ?: "未登录"
+                binding.tvUserName.text = name ?: "未登录"
             }
     }
 
     /**
-     * 初始化事件监听（可重写）
+     * 初始化事件监听
      */
     override fun initListener() {
-        // 设置按钮点击事件
-        findViewById<View>(R.id.btn_load_data).setOnClickListener {
+        // 直接通过 binding 访问按钮，设置点击事件
+        binding.btnLoadData.setOnClickListener {
             loadUserData()
         }
         
-        findViewById<View>(R.id.btn_show_dialog).setOnClickListener {
+        binding.btnShowDialog.setOnClickListener {
             showSampleDialog()
         }
         
-        findViewById<View>(R.id.btn_request_permission).setOnClickListener {
+        binding.btnRequestPermission.setOnClickListener {
             requestPermissions()
         }
     }
 
     /**
-     * 初始化数据（可重写）
+     * 初始化数据
      */
     override fun initData() {
         logD("初始化数据...")
@@ -80,65 +86,36 @@ class MainActivity : BaseActivity<UserDetailViewModel>() {
     }
 
     /**
-     * 创建 ViewModel（必须实现）
+     * 创建 ViewModel
      */
     override fun createViewModel(): UserDetailViewModel {
         return UserDetailViewModel()
     }
 
-    /**
-     * Activity 进入前台
-     */
-    override fun onActivityResume() {
-        super.onActivityResume()
-        logD("Activity resumed")
-    }
-
-    /**
-     * 加载用户数据
-     */
     private fun loadUserData() {
         viewModel.loadUserDetail("123")
     }
 
-    /**
-     * 处理用户加载成功
-     */
     private fun handleUserLoadSuccess(user: com.github.spadger.mvvmc.demo.model.UserDetail) {
         hideLoading()
-        tvUserName.text = user.name
+        // 使用 View Binding 直接访问视图
+        binding.tvUserName.text = user.name
+        binding.tvUserEmail.text = user.email
         showSuccess("用户加载成功")
     }
 
-    /**
-     * 处理用户加载失败
-     */
     private fun handleUserLoadError(exception: Exception) {
         hideLoading()
         showError("加载失败: ${exception.message}")
     }
 
-    /**
-     * 初始化 DataStore
-     */
     private fun initDataStore() {
         CoroutineScope(Dispatchers.IO).launch {
-            // 写入测试数据
             DataStoreHolder.getInstance().putString(DataStoreKeys.USER_TOKEN, "test_token_123")
             DataStoreHolder.getInstance().putBoolean(DataStoreKeys.IS_LOGGED_IN, true)
-            DataStoreHolder.getInstance().putLong(DataStoreKeys.LAST_LOGIN_TIME, System.currentTimeMillis())
-            
-            // 读取数据
-            val token = DataStoreHolder.getInstance().getString(DataStoreKeys.USER_TOKEN)
-            runOnUiThread {
-                logD("Token from DataStore: $token")
-            }
         }
     }
 
-    /**
-     * 请求权限
-     */
     private fun requestPermissions() {
         val permissionHelper = PermissionHelper(this, object : PermissionCallback {
             override fun onGranted() {
@@ -157,9 +134,6 @@ class MainActivity : BaseActivity<UserDetailViewModel>() {
         }
     }
 
-    /**
-     * 显示示例对话框
-     */
     private fun showSampleDialog() {
         DialogBuilder.showConfirm(this, "测试对话框", "这是一个测试对话框",
             { showSuccess("确认") },
@@ -167,56 +141,11 @@ class MainActivity : BaseActivity<UserDetailViewModel>() {
         )
     }
 
-    /**
-     * 显示加载中
-     */
     private fun showLoading() {
-        logD("显示加载中...")
+        binding.progressBar.visibility = android.view.View.VISIBLE
     }
 
-    /**
-     * 隐藏加载中
-     */
     private fun hideLoading() {
-        logD("隐藏加载中...")
-    }
-}
-
-/**
- * 登录演示 Activity
- */
-class LoginActivity : BaseActivity<com.github.spadger.mvvmc.demo.vm.LoginViewModel>() {
-
-    override fun initView() {
-        setContentView(R.layout.activity_login)
-    }
-
-    override fun setupObservers() {
-        viewModel.state.observeResult(
-            this,
-            onSuccess = { loginResponse ->
-                // 登录成功，保存 token
-                CoroutineScope(Dispatchers.IO).launch {
-                    DataStoreHolder.getInstance().putString(DataStoreKeys.USER_TOKEN, loginResponse.token)
-                    DataStoreHolder.getInstance().putBoolean(DataStoreKeys.IS_LOGGED_IN, true)
-                }
-                showSuccess("登录成功")
-            },
-            onError = { exception ->
-                showError("登录失败: ${exception.message}")
-            },
-            onLoading = {
-                logD("正在登录...")
-            }
-        )
-    }
-
-    override fun createViewModel(): com.github.spadger.mvvmc.demo.vm.LoginViewModel {
-        return com.github.spadger.mvvmc.demo.vm.LoginViewModel()
-    }
-
-    // 模拟登录按钮点击
-    fun onLoginClick(username: String, password: String) {
-        viewModel.login(username, password)
+        binding.progressBar.visibility = android.view.View.GONE
     }
 }
