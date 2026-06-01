@@ -62,14 +62,14 @@ afterEvaluate {
             create<MavenPublication>("release") {
                 from(components["release"])
 
-                groupId = "com.gitee.zhangyuanyangW"
-                artifactId = "android-mvvmcore"
+                groupId = "com.github.1293290662"
+                artifactId = "AndroidMVVMCore"
                 version = "1.0.0"
 
                 pom {
                     name.set("MVVMCore")
                     description.set("A modern MVVM framework for Android development with BaseActivity, BaseFragment, BaseViewModel, BaseRepository and Network components")
-                    url.set("https://gitee.com/zhangyuanyangW/android-mvvmcore")
+                    url.set("https://github.com/1293290662/AndroidMVVMCore")
 
                     licenses {
                         license {
@@ -80,16 +80,16 @@ afterEvaluate {
 
                     developers {
                         developer {
-                            id.set("zhangyuanyangW")
-                            name.set("Zhang Yuanyang")
-                            email.set("zhangyuanyangW@gitee.com")
+                            id.set("1293290662")
+                            name.set("Developer")
+                            email.set("developer@github.com")
                         }
                     }
 
                     scm {
-                        connection.set("scm:git:https://gitee.com/zhangyuanyangW/android-mvvmcore.git")
-                        developerConnection.set("scm:git:https://gitee.com/zhangyuanyangW/android-mvvmcore.git")
-                        url.set("https://gitee.com/zhangyuanyangW/android-mvvmcore")
+                        connection.set("scm:git:https://github.com/1293290662/AndroidMVVMCore.git")
+                        developerConnection.set("scm:git:https://github.com/1293290662/AndroidMVVMCore.git")
+                        url.set("https://github.com/1293290662/AndroidMVVMCore")
                     }
                 }
             }

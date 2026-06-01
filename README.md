@@ -13,7 +13,7 @@ A modern MVVM framework for Android development with BaseActivity, BaseFragment,
 
 ## Installation
 
-### Step 1: Add Gitee Maven repository
+### Step 1: Add JitPack repository
 
 Add it in your root build.gradle at the end of repositories:
 
@@ -22,7 +22,7 @@ dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         mavenCentral()
-        maven { url 'https://gitee.com/zhangyuanyangW/android-mvvmcore/raw/mvn' }
+        maven { url 'https://jitpack.io' }
     }
 }
 ```
@@ -31,7 +31,7 @@ dependencyResolutionManagement {
 
 ```gradle
 dependencies {
-    implementation 'com.gitee.zhangyuanyangW:android-mvvmcore:1.0.0'
+    implementation 'com.github.1293290662:AndroidMVVMCore:1.0.0'
 }
 ```
 
@@ -103,7 +103,3 @@ MIT License
 ## Contributing
 
 Feel free to submit issues and enhancement requests.
-
-## Credits
-
-Developed by Zhang Yuanyang
