@@ -16,6 +16,8 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.github.spadger.mvvmc.util.LogUtil
+import com.github.spadger.mvvmc.util.ToastUtil
 
 abstract class BaseFragment<VM : ViewModel> : Fragment() {
     /**
@@ -103,5 +105,92 @@ abstract class BaseFragment<VM : ViewModel> : Fragment() {
      * 显示错误信息，子类可重写实现具体UI
      * @param message 错误信息
      */
-    protected fun showError(message: String) {}
+    protected fun showError(message: String) {
+        context?.let { ToastUtil.showError(it, message) }
+    }
+
+    // ==================== Toast 便捷方法 ====================
+
+    /**
+     * 显示短时间Toast
+     * @param message 消息内容
+     */
+    protected fun showToast(message: String) {
+        context?.let { ToastUtil.showShort(it, message) }
+    }
+
+    /**
+     * 显示长时间Toast
+     * @param message 消息内容
+     */
+    protected fun showToastLong(message: String) {
+        context?.let { ToastUtil.showLong(it, message) }
+    }
+
+    /**
+     * 显示成功提示Toast
+     * @param message 消息内容
+     */
+    protected fun showSuccess(message: String) {
+        context?.let { ToastUtil.showSuccess(it, message) }
+    }
+
+    /**
+     * 显示警告提示Toast
+     * @param message 消息内容
+     */
+    protected fun showWarning(message: String) {
+        context?.let { ToastUtil.showWarning(it, message) }
+    }
+
+    /**
+     * 显示信息提示Toast
+     * @param message 消息内容
+     */
+    protected fun showInfo(message: String) {
+        context?.let { ToastUtil.showInfo(it, message) }
+    }
+
+    // ==================== Log 便捷方法 ====================
+
+    /**
+     * 输出调试日志
+     * @param message 消息内容
+     */
+    protected fun logD(message: String) {
+        LogUtil.d(javaClass.simpleName, message)
+    }
+
+    /**
+     * 输出信息日志
+     * @param message 消息内容
+     */
+    protected fun logI(message: String) {
+        LogUtil.i(javaClass.simpleName, message)
+    }
+
+    /**
+     * 输出警告日志
+     * @param message 消息内容
+     */
+    protected fun logW(message: String) {
+        LogUtil.w(javaClass.simpleName, message)
+    }
+
+    /**
+     * 输出错误日志
+     * @param message 消息内容
+     */
+    protected fun logE(message: String) {
+        LogUtil.e(javaClass.simpleName, message)
+    }
+
+    /**
+     * 输出错误日志（包含异常）
+     * @param message 消息内容
+     * @param throwable 异常
+     */
+    protected fun logE(message: String, throwable: Throwable) {
+        LogUtil.e(javaClass.simpleName, message, throwable)
+    }
 }

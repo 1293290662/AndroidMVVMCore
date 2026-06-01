@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/dialog_bg"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <!-- 标题 -->
+    <TextView
+        android:id="@+id/tv_dialog_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="#333333"
+        android:visibility="gone"/>
+
+    <!-- 消息内容 -->
+    <TextView
+        android:id="@+id/tv_dialog_message"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:textSize="14sp"
+        android:textColor="#666666"
+        android:lineSpacingExtra="4dp"
+        android:visibility="gone"/>
+
+    <!-- 自定义视图容器 -->
+    <FrameLayout
+        android:id="@+id/fl_dialog_custom_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"/>
+
+    <!-- 按钮区域 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:orientation="horizontal">
+
+        <!-- 中立按钮 -->
+        <Button
+            android:id="@+id/btn_dialog_neutral"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:background="@drawable/dialog_btn_bg"
+            android:textSize="14sp"
+            android:textColor="#666666"
+            android:visibility="gone"/>
+
+        <!-- 取消按钮 -->
+        <Button
+            android:id="@+id/btn_dialog_negative"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:layout_marginLeft="12dp"
+            android:background="@drawable/dialog_btn_bg"
+            android:textSize="14sp"
+            android:textColor="#999999"/>
+
+        <!-- 确认按钮 -->
+        <Button
+            android:id="@+id/btn_dialog_positive"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:layout_marginLeft="12dp"
+            android:background="@drawable/dialog_btn_positive_bg"
+            android:textSize="14sp"
+            android:textColor="#1E88E5"/>
+
+    </LinearLayout>
+
+</LinearLayout>

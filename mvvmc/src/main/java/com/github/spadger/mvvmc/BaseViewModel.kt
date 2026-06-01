@@ -9,6 +9,7 @@ package com.github.spadger.mvvmc
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.spadger.mvvmc.util.LogUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -70,5 +71,48 @@ open class BaseViewModel : ViewModel() {
         super.onCleared()
         jobs.forEach { it.cancel() }
         jobs.clear()
+    }
+
+    // ==================== Log 便捷方法 ====================
+
+    /**
+     * 输出调试日志
+     * @param message 消息内容
+     */
+    protected fun logD(message: String) {
+        LogUtil.d(javaClass.simpleName, message)
+    }
+
+    /**
+     * 输出信息日志
+     * @param message 消息内容
+     */
+    protected fun logI(message: String) {
+        LogUtil.i(javaClass.simpleName, message)
+    }
+
+    /**
+     * 输出警告日志
+     * @param message 消息内容
+     */
+    protected fun logW(message: String) {
+        LogUtil.w(javaClass.simpleName, message)
+    }
+
+    /**
+     * 输出错误日志
+     * @param message 消息内容
+     */
+    protected fun logE(message: String) {
+        LogUtil.e(javaClass.simpleName, message)
+    }
+
+    /**
+     * 输出错误日志（包含异常）
+     * @param message 消息内容
+     * @param throwable 异常
+     */
+    protected fun logE(message: String, throwable: Throwable) {
+        LogUtil.e(javaClass.simpleName, message, throwable)
     }
 }
