@@ -37,20 +37,20 @@ android {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    
+
     implementation(libs.androidx.viewmodel.ktx)
     implementation(libs.androidx.livedata.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.fragment.ktx)
-    
+
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging.interceptor)
     implementation(libs.gson)
     implementation(libs.kotlinx.coroutines.android)
-    
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -61,35 +61,35 @@ afterEvaluate {
         publications {
             create<MavenPublication>("release") {
                 from(components["release"])
-                
-                groupId = "com.github.spadger"
-                artifactId = "AndroidMVVMCore"
+
+                groupId = "com.gitee.zhangyuanyangW"
+                artifactId = "android-mvvmcore"
                 version = "1.0.0"
-                
+
                 pom {
                     name.set("MVVMCore")
                     description.set("A modern MVVM framework for Android development with BaseActivity, BaseFragment, BaseViewModel, BaseRepository and Network components")
-                    url.set("https://github.com/spadger/AndroidMVVMCore")
-                    
+                    url.set("https://gitee.com/zhangyuanyangW/android-mvvmcore")
+
                     licenses {
                         license {
                             name.set("MIT License")
                             url.set("https://opensource.org/licenses/MIT")
                         }
                     }
-                    
+
                     developers {
                         developer {
-                            id.set("spadger")
-                            name.set("Spadger Developer")
-                            email.set("spadger@github.com")
+                            id.set("zhangyuanyangW")
+                            name.set("Zhang Yuanyang")
+                            email.set("zhangyuanyangW@gitee.com")
                         }
                     }
-                    
+
                     scm {
-                        connection.set("scm:git:git://github.com/spadger/AndroidMVVMCore.git")
-                        developerConnection.set("scm:git:ssh://github.com/spadger/AndroidMVVMCore.git")
-                        url.set("https://github.com/spadger/AndroidMVVMCore")
+                        connection.set("scm:git:https://gitee.com/zhangyuanyangW/android-mvvmcore.git")
+                        developerConnection.set("scm:git:https://gitee.com/zhangyuanyangW/android-mvvmcore.git")
+                        url.set("https://gitee.com/zhangyuanyangW/android-mvvmcore")
                     }
                 }
             }
