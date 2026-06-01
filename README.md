@@ -2,11 +2,16 @@
 
 A modern MVVM framework for Android development with BaseActivity, BaseFragment, BaseViewModel, BaseRepository and Network components.
 
+## Author
+
+**ZhangYuanYang**  
+Email: 1293290662@qq.com
+
 ## Features
 
 - **BaseActivity**: Base class for activities with ViewModel support
-- **BaseFragment**: Base class for fragments with ViewModel support
-- **BaseViewModel**: Base ViewModel class with common utilities
+- **BaseFragment**: Base class for fragments with ViewModel support and lazy loading
+- **BaseViewModel**: Base ViewModel class with coroutine utilities and error handling
 - **BaseRepository**: Base repository class for data operations
 - **Network Components**: Retrofit, OkHttp configuration with interceptors
 - **Result Handling**: Generic Result and NetworkResponse wrappers
@@ -65,10 +70,10 @@ class MainViewModel : BaseViewModel() {
     val data = MutableLiveData<String>()
 
     fun fetchData() {
-        launch {
+        launchOnIO {
             val result = repository.getData()
             result.onSuccess { data.value = it }
-            result.onFailure { showError(it.message) }
+            result.onError { showError(it.message) }
         }
     }
 }
@@ -79,7 +84,7 @@ class MainViewModel : BaseViewModel() {
 ```kotlin
 class MainRepository : BaseRepository() {
     suspend fun getData(): Result<String> {
-        return safeApiCall { apiService.getData() }
+        return apiCall { apiService.getData() }
     }
 }
 ```
@@ -87,13 +92,11 @@ class MainRepository : BaseRepository() {
 ### Network Configuration
 
 ```kotlin
-// Create Retrofit service
-val apiService = RetrofitProvider.create<ApiService>()
+// Initialize Retrofit
+RetrofitProvider.init("https://api.example.com/")
 
-// Custom OkHttp client
-val client = OkHttpProvider.create {
-    addInterceptor(HeaderInterceptor())
-}
+// Create Retrofit service
+val apiService = createApi<ApiService>()
 ```
 
 ## License

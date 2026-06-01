@@ -1,3 +1,10 @@
+/**
+ * @author ZhangYuanYang
+ * @email 1293290662@qq.com
+ * @date 2024/01/01
+ * 
+ * ViewModel基类，提供协程调度、网络请求安全处理和生命周期管理
+ */
 package com.github.spadger.mvvmc
 
 import androidx.lifecycle.ViewModel
@@ -9,8 +16,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 open class BaseViewModel : ViewModel() {
+    /**
+     * 存储所有协程Job，用于ViewModel销毁时取消所有任务
+     */
     private val jobs = mutableListOf<Job>()
 
+    /**
+     * 在UI线程执行协程任务
+     * @param block 协程执行的代码块
+     * @return Job实例，可用于取消任务
+     */
     protected fun launchOnUI(block: suspend CoroutineScope.() -> Unit): Job {
         val job = viewModelScope.launch(Dispatchers.Main) {
             block()
@@ -22,6 +37,11 @@ open class BaseViewModel : ViewModel() {
         return job
     }
 
+    /**
+     * 在IO线程执行协程任务，自动切换到主线程
+     * @param block 协程执行的代码块
+     * @return Job实例，可用于取消任务
+     */
     protected fun launchOnIO(block: suspend CoroutineScope.() -> Unit): Job {
         return launchOnUI {
             withContext(Dispatchers.IO) {
@@ -30,6 +50,11 @@ open class BaseViewModel : ViewModel() {
         }
     }
 
+    /**
+     * 安全的API调用方法，自动捕获异常并转换为Result类型
+     * @param call 网络请求调用
+     * @return Result<T>包装的结果
+     */
     protected suspend fun <T> safeApiCall(call: suspend () -> Result<T>): Result<T> {
         return try {
             call()
@@ -38,6 +63,9 @@ open class BaseViewModel : ViewModel() {
         }
     }
 
+    /**
+     * ViewModel销毁时调用，取消所有正在执行的协程任务
+     */
     override fun onCleared() {
         super.onCleared()
         jobs.forEach { it.cancel() }
