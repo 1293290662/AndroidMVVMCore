@@ -1,0 +1,3 @@
+-keep class com.spadger.baseframework.** { *; }
+-keep interface com.spadger.baseframework.** { *; }
+-keep enum com.spadger.baseframework.** { *; }
