@@ -47,6 +47,8 @@ dependencies {
     implementation(libs.androidx.activity.ktx)
     implementation("androidx.datastore:datastore-preferences:1.0.0")
     implementation(libs.androidx.fragment.ktx)
+    implementation(libs.androidx.navigation.fragment.ktx)
+    implementation(libs.androidx.navigation.ui.ktx)
 
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)

@@ -18,6 +18,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.viewbinding.ViewBinding
+import com.github.spadger.mvvmc.nav.Navigator
 import com.github.spadger.mvvmc.util.LogUtil
 import com.github.spadger.mvvmc.util.ToastUtil
 
@@ -143,6 +144,28 @@ abstract class BaseBindingFragment<VM : ViewModel, VB : ViewBinding> : Fragment(
 
     protected fun logE(message: String, throwable: Throwable) {
         LogUtil.e(javaClass.simpleName, message, throwable)
+    }
+
+    // ==================== 导航便捷方法 ====================
+
+    protected fun navigate(@androidx.annotation.IdRes resId: Int) {
+        Navigator.navigate(this, resId)
+    }
+
+    protected fun navigate(@androidx.annotation.IdRes resId: Int, args: android.os.Bundle?) {
+        Navigator.navigate(this, resId, args)
+    }
+
+    protected fun goBack() {
+        Navigator.popBackStack(this)
+    }
+
+    protected fun goBackToRoot() {
+        Navigator.popToRoot(this)
+    }
+
+    protected fun canGoBack(): Boolean {
+        return Navigator.canGoBack(this)
     }
 
     // ==================== 生命周期回调 ====================

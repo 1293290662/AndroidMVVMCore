@@ -17,6 +17,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.github.spadger.mvvmc.ext.LiveDataExt
+import com.github.spadger.mvvmc.nav.Navigator
 import com.github.spadger.mvvmc.util.LogUtil
 import com.github.spadger.mvvmc.util.ToastUtil
 
@@ -227,6 +228,46 @@ abstract class BaseFragment<VM : ViewModel> : Fragment() {
      */
     protected fun logE(message: String, throwable: Throwable) {
         LogUtil.e(javaClass.simpleName, message, throwable)
+    }
+
+    // ==================== 导航便捷方法 ====================
+
+    /**
+     * 导航到指定目的地
+     * @param resId 目标目的地 ID
+     */
+    protected fun navigate(@androidx.annotation.IdRes resId: Int) {
+        Navigator.navigate(this, resId)
+    }
+
+    /**
+     * 导航到指定目的地（带参数）
+     * @param resId 目标目的地 ID
+     * @param args 传递的参数
+     */
+    protected fun navigate(@androidx.annotation.IdRes resId: Int, args: android.os.Bundle?) {
+        Navigator.navigate(this, resId, args)
+    }
+
+    /**
+     * 返回上一级
+     */
+    protected fun goBack() {
+        Navigator.popBackStack(this)
+    }
+
+    /**
+     * 返回栈底
+     */
+    protected fun goBackToRoot() {
+        Navigator.popToRoot(this)
+    }
+
+    /**
+     * 判断是否可以返回
+     */
+    protected fun canGoBack(): Boolean {
+        return Navigator.canGoBack(this)
     }
 
     // ==================== 生命周期回调 ====================
