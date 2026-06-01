@@ -68,35 +68,35 @@ afterEvaluate {
             create<MavenPublication>("release") {
                 from(components["release"])
 
-                groupId = "com.github.1293290662"
-                artifactId = "AndroidMVVMCore"
-                version = "1.0.0"
+                groupId = "com.github.ZhangYuanYang-spadger"
+                    artifactId = "AndroidMVVMCore"
+                    version = "1.0.0"
 
-                pom {
-                    name.set("MVVMCore")
-                    description.set("A modern MVVM framework for Android development with BaseActivity, BaseFragment, BaseViewModel, BaseRepository and Network components")
-                    url.set("https://github.com/1293290662/AndroidMVVMCore")
+                    pom {
+                        name.set("MVVMCore")
+                        description.set("A modern MVVM framework for Android development with BaseActivity, BaseFragment, BaseViewModel, BaseRepository and Network components")
+                        url.set("https://github.com/ZhangYuanYang-spadger/AndroidMVVMCore")
 
-                    licenses {
-                        license {
-                            name.set("MIT License")
-                            url.set("https://opensource.org/licenses/MIT")
+                        licenses {
+                            license {
+                                name.set("MIT License")
+                                url.set("https://opensource.org/licenses/MIT")
+                            }
                         }
-                    }
 
-                    developers {
-                        developer {
-                            id.set("1293290662")
-                            name.set("Developer")
-                            email.set("developer@github.com")
+                        developers {
+                            developer {
+                                id.set("ZhangYuanYang-spadger")
+                                name.set("ZhangYuanYang")
+                                email.set("1293290662@qq.com")
+                            }
                         }
-                    }
 
-                    scm {
-                        connection.set("scm:git:https://github.com/1293290662/AndroidMVVMCore.git")
-                        developerConnection.set("scm:git:https://github.com/1293290662/AndroidMVVMCore.git")
-                        url.set("https://github.com/1293290662/AndroidMVVMCore")
-                    }
+                        scm {
+                            connection.set("scm:git:https://github.com/ZhangYuanYang-spadger/AndroidMVVMCore.git")
+                            developerConnection.set("scm:git:https://github.com/ZhangYuanYang-spadger/AndroidMVVMCore.git")
+                            url.set("https://github.com/ZhangYuanYang-spadger/AndroidMVVMCore")
+                        }
                 }
             }
         }

@@ -36,7 +36,7 @@ dependencyResolutionManagement {
 
 ```gradle
 dependencies {
-    implementation 'com.github.1293290662:AndroidMVVMCore:1.0.0'
+    implementation 'com.github.ZhangYuanYang-spadger:AndroidMVVMCore:1.0.0'
 }
 ```
 
