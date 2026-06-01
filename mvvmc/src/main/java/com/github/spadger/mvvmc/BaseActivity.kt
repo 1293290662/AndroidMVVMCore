@@ -15,9 +15,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.github.spadger.mvvmc.ext.LiveDataExt
 import com.github.spadger.mvvmc.util.LogUtil
+import com.github.spadger.mvvmc.util.SystemBarHelper
 import com.github.spadger.mvvmc.util.ToastUtil
 
 abstract class BaseActivity<VM : ViewModel> : AppCompatActivity() {
+    /**
+     * 是否启用 Edge-to-Edge 模式（默认启用）
+     */
+    protected open val isEdgeToEdge: Boolean = true
+
     /**
      * 泛型ViewModel实例，由createViewModel()方法初始化
      */
@@ -31,6 +37,9 @@ abstract class BaseActivity<VM : ViewModel> : AppCompatActivity() {
         
         // 初始化流程
         beforeInit()
+        if (isEdgeToEdge) {
+            SystemBarHelper.enableEdgeToEdge(this)
+        }
         viewModel = createViewModel()
         initView()
         setupObservers()
@@ -241,4 +250,83 @@ abstract class BaseActivity<VM : ViewModel> : AppCompatActivity() {
      * Activity 销毁时调用
      */
     protected open fun onActivityDestroy() {}
+
+    // ==================== System Bar 便捷方法 ====================
+
+    /**
+     * 启用 Edge-to-Edge 模式
+     */
+    protected fun enableEdgeToEdge() {
+        SystemBarHelper.enableEdgeToEdge(this)
+    }
+
+    /**
+     * 设置状态栏颜色
+     */
+    protected fun setStatusBarColor(@androidx.annotation.ColorInt color: Int) {
+        SystemBarHelper.setStatusBarColor(this, color)
+    }
+
+    /**
+     * 设置导航栏颜色
+     */
+    protected fun setNavigationBarColor(@androidx.annotation.ColorInt color: Int) {
+        SystemBarHelper.setNavigationBarColor(this, color)
+    }
+
+    /**
+     * 设置透明状态栏
+     */
+    protected fun setTransparentStatusBar() {
+        SystemBarHelper.setTransparentStatusBar(this)
+    }
+
+    /**
+     * 设置透明导航栏
+     */
+    protected fun setTransparentNavigationBar() {
+        SystemBarHelper.setTransparentNavigationBar(this)
+    }
+
+    /**
+     * 设置透明系统栏
+     */
+    protected fun setTransparentSystemBars() {
+        SystemBarHelper.setTransparentSystemBars(this)
+    }
+
+    /**
+     * 隐藏系统栏
+     */
+    protected fun hideSystemBars() {
+        SystemBarHelper.hideSystemBars(this)
+    }
+
+    /**
+     * 显示系统栏
+     */
+    protected fun showSystemBars() {
+        SystemBarHelper.showSystemBars(this)
+    }
+
+    /**
+     * 设置浅色状态栏（深色图标）
+     */
+    protected fun setLightStatusBar(isLight: Boolean) {
+        SystemBarHelper.setLightStatusBar(this, isLight)
+    }
+
+    /**
+     * 设置浅色导航栏（深色图标）
+     */
+    protected fun setLightNavigationBar(isLight: Boolean) {
+        SystemBarHelper.setLightNavigationBar(this, isLight)
+    }
+
+    /**
+     * 设置浅色系统栏
+     */
+    protected fun setLightSystemBars(isLight: Boolean) {
+        SystemBarHelper.setLightSystemBars(this, isLight)
+    }
 }

@@ -2,9 +2,9 @@
  * @author ZhangYuanYang
  * @email 1293290662@qq.com
  * @date 2024/01/01
- * 
+ *
  * Activity基类，支持 View Binding
- * 
+ *
  * @param VM ViewModel类型参数
  * @param VB ViewBinding类型参数
  */
@@ -16,14 +16,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.viewbinding.ViewBinding
 import com.github.spadger.mvvmc.util.LogUtil
+import com.github.spadger.mvvmc.util.SystemBarHelper
 import com.github.spadger.mvvmc.util.ToastUtil
 
 abstract class BaseBindingActivity<VM : ViewModel, VB : ViewBinding> : AppCompatActivity() {
     /**
+     * 是否启用 Edge-to-Edge 模式（默认启用）
+     */
+    protected open val isEdgeToEdge: Boolean = true
+
+    /**
      * 泛型ViewModel实例
      */
     protected lateinit var viewModel: VM
-    
+
     /**
      * View Binding 实例
      */
@@ -34,8 +40,11 @@ abstract class BaseBindingActivity<VM : ViewModel, VB : ViewBinding> : AppCompat
      */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         beforeInit()
+        if (isEdgeToEdge) {
+            SystemBarHelper.enableEdgeToEdge(this)
+        }
         viewModel = createViewModel()
         binding = createViewBinding()
         setContentView(binding.root)
@@ -142,6 +151,85 @@ abstract class BaseBindingActivity<VM : ViewModel, VB : ViewBinding> : AppCompat
 
     protected fun logE(message: String, throwable: Throwable) {
         LogUtil.e(javaClass.simpleName, message, throwable)
+    }
+
+    // ==================== System Bar 便捷方法 ====================
+
+    /**
+     * 启用 Edge-to-Edge 模式
+     */
+    protected fun enableEdgeToEdge() {
+        SystemBarHelper.enableEdgeToEdge(this)
+    }
+
+    /**
+     * 设置状态栏颜色
+     */
+    protected fun setStatusBarColor(@androidx.annotation.ColorInt color: Int) {
+        SystemBarHelper.setStatusBarColor(this, color)
+    }
+
+    /**
+     * 设置导航栏颜色
+     */
+    protected fun setNavigationBarColor(@androidx.annotation.ColorInt color: Int) {
+        SystemBarHelper.setNavigationBarColor(this, color)
+    }
+
+    /**
+     * 设置透明状态栏
+     */
+    protected fun setTransparentStatusBar() {
+        SystemBarHelper.setTransparentStatusBar(this)
+    }
+
+    /**
+     * 设置透明导航栏
+     */
+    protected fun setTransparentNavigationBar() {
+        SystemBarHelper.setTransparentNavigationBar(this)
+    }
+
+    /**
+     * 设置透明系统栏
+     */
+    protected fun setTransparentSystemBars() {
+        SystemBarHelper.setTransparentSystemBars(this)
+    }
+
+    /**
+     * 隐藏系统栏
+     */
+    protected fun hideSystemBars() {
+        SystemBarHelper.hideSystemBars(this)
+    }
+
+    /**
+     * 显示系统栏
+     */
+    protected fun showSystemBars() {
+        SystemBarHelper.showSystemBars(this)
+    }
+
+    /**
+     * 设置浅色状态栏（深色图标）
+     */
+    protected fun setLightStatusBar(isLight: Boolean) {
+        SystemBarHelper.setLightStatusBar(this, isLight)
+    }
+
+    /**
+     * 设置浅色导航栏（深色图标）
+     */
+    protected fun setLightNavigationBar(isLight: Boolean) {
+        SystemBarHelper.setLightNavigationBar(this, isLight)
+    }
+
+    /**
+     * 设置浅色系统栏
+     */
+    protected fun setLightSystemBars(isLight: Boolean) {
+        SystemBarHelper.setLightSystemBars(this, isLight)
     }
 
     // ==================== 生命周期回调 ====================
