@@ -10,10 +10,12 @@ package com.github.spadger.mvvmc.util
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
@@ -248,7 +250,7 @@ class DataStoreManager(context: Context) {
     }
     
     private fun emptyPreferences(): Preferences {
-        return mutableMapOf<Preferences.Key<*>, Any>().toPreferences()
+        return emptyPreferences()
     }
 }
 

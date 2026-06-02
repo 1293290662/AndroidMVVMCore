@@ -1,11 +1,11 @@
 package com.github.spadger.mvvmc.demo.vm
 
-import com.github.spadger.mvvmc.BaseViewModel
 import com.github.spadger.mvvmc.Result
 import com.github.spadger.mvvmc.demo.model.*
 import com.github.spadger.mvvmc.demo.repository.UserRepository
 import com.github.spadger.mvvmc.model.PageData
 import com.github.spadger.mvvmc.vm.ListViewModel
+import com.github.spadger.mvvmc.vm.StateViewModel
 
 /**
  * 用户列表 ViewModel
@@ -15,27 +15,18 @@ class UserListViewModel : ListViewModel<User>() {
     
     private val repository = UserRepository()
     
-    /**
-     * 刷新数据
-     */
     fun refresh() {
         resetPage()
         setRefreshing()
         loadUsers()
     }
     
-    /**
-     * 加载更多
-     */
     fun loadMore() {
         if (!hasMore) return
         setLoadMore()
         loadUsers()
     }
     
-    /**
-     * 加载用户列表
-     */
     private fun loadUsers() {
         launchOnIO {
             val result = repository.getUserList(currentPage)
@@ -49,7 +40,7 @@ class UserListViewModel : ListViewModel<User>() {
                     nextPage()
                 }
                 is Result.Error -> {
-                    setListError(result.exception)
+                    setListError(result.err)
                 }
                 else -> {}
             }
@@ -61,13 +52,10 @@ class UserListViewModel : ListViewModel<User>() {
  * 用户详情 ViewModel
  * 演示如何使用 StateViewModel 基类
  */
-class UserDetailViewModel : com.github.spadger.mvvmc.vm.StateViewModel<UserDetail>() {
+class UserDetailViewModel : StateViewModel<UserDetail>() {
     
     private val repository = UserRepository()
     
-    /**
-     * 加载用户详情
-     */
     fun loadUserDetail(userId: String) {
         setLoading()
         launchOnIO {
@@ -77,16 +65,21 @@ class UserDetailViewModel : com.github.spadger.mvvmc.vm.StateViewModel<UserDetai
                     setSuccess(result.data)
                 }
                 is Result.Error -> {
-                    setError(result.exception)
+                    setError(result.err)
                 }
                 else -> {}
             }
         }
     }
+}
+
+/**
+ * 更新用户信息 ViewModel
+ */
+class UpdateUserViewModel : StateViewModel<User>() {
     
-    /**
-     * 更新用户信息
-     */
+    private val repository = UserRepository()
+    
     fun updateUser(userId: String, name: String? = null, avatar: String? = null) {
         setLoading()
         launchOnIO {
@@ -96,7 +89,7 @@ class UserDetailViewModel : com.github.spadger.mvvmc.vm.StateViewModel<UserDetai
                     setSuccess(result.data)
                 }
                 is Result.Error -> {
-                    setError(result.exception)
+                    setError(result.err)
                 }
                 else -> {}
             }
@@ -108,13 +101,10 @@ class UserDetailViewModel : com.github.spadger.mvvmc.vm.StateViewModel<UserDetai
  * 登录 ViewModel
  * 演示简单的状态管理
  */
-class LoginViewModel : com.github.spadger.mvvmc.vm.StateViewModel<LoginResponse>() {
+class LoginViewModel : StateViewModel<LoginResponse>() {
     
     private val repository = UserRepository()
     
-    /**
-     * 执行登录
-     */
     fun login(username: String, password: String) {
         if (username.isBlank() || password.isBlank()) {
             setError(Exception("用户名和密码不能为空"))
@@ -129,16 +119,21 @@ class LoginViewModel : com.github.spadger.mvvmc.vm.StateViewModel<LoginResponse>
                     setSuccess(result.data)
                 }
                 is Result.Error -> {
-                    setError(result.exception)
+                    setError(result.err)
                 }
                 else -> {}
             }
         }
     }
+}
+
+/**
+ * 注册 ViewModel
+ */
+class RegisterViewModel : StateViewModel<User>() {
     
-    /**
-     * 注册
-     */
+    private val repository = UserRepository()
+    
     fun register(username: String, password: String, email: String) {
         if (username.isBlank() || password.isBlank() || email.isBlank()) {
             setError(Exception("请填写完整信息"))
@@ -153,7 +148,7 @@ class LoginViewModel : com.github.spadger.mvvmc.vm.StateViewModel<LoginResponse>
                     setSuccess(result.data)
                 }
                 is Result.Error -> {
-                    setError(result.exception)
+                    setError(result.err)
                 }
                 else -> {}
             }

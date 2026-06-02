@@ -6,11 +6,10 @@ plugins {
 
 android {
     namespace = "com.github.spadger.mvvmc"
-    compileSdk = 35
+    compileSdk = 34
 
     defaultConfig {
         minSdk = 24
-        targetSdk = 35
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
@@ -38,24 +37,25 @@ android {
 }
 
 dependencies {
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
+    // 公共 API 依赖 - 使用 api 暴露给使用者
+    api(libs.androidx.core.ktx)
+    api(libs.androidx.appcompat)
+    api(libs.androidx.lifecycle.viewmodel.ktx)
+    api(libs.androidx.lifecycle.livedata.ktx)
+    api(libs.androidx.lifecycle.runtime.ktx)
+    api(libs.androidx.activity.ktx)
+    api(libs.androidx.datastore.preferences)
+    api(libs.androidx.fragment.ktx)
+    api(libs.androidx.navigation.fragment.ktx)
+    api(libs.androidx.navigation.ui.ktx)
+    api(libs.kotlinx.coroutines.android)
+    api(libs.gson)
 
-    implementation(libs.androidx.viewmodel.ktx)
-    implementation(libs.androidx.livedata.ktx)
-    implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.activity.ktx)
-    implementation("androidx.datastore:datastore-preferences:1.0.0")
-    implementation(libs.androidx.fragment.ktx)
-    implementation(libs.androidx.navigation.fragment.ktx)
-    implementation(libs.androidx.navigation.ui.ktx)
-
+    // 内部实现依赖 - 使用 implementation 隐藏
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging.interceptor)
-    implementation(libs.gson)
-    implementation(libs.kotlinx.coroutines.android)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

@@ -9,38 +9,58 @@
  */
 package com.github.spadger.mvvmc
 
+import android.Manifest
 import android.os.Bundle
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.github.spadger.mvvmc.ext.LiveDataExt
+import androidx.core.app.ActivityCompat
+
 import com.github.spadger.mvvmc.util.LogUtil
 import com.github.spadger.mvvmc.util.SystemBarHelper
 import com.github.spadger.mvvmc.util.ToastUtil
 
 abstract class BaseActivity<VM : ViewModel> : AppCompatActivity() {
-    /**
-     * 是否启用 Edge-to-Edge 模式（默认启用）
-     */
     protected open val isEdgeToEdge: Boolean = true
 
-    /**
-     * 泛型ViewModel实例，由createViewModel()方法初始化
-     */
-    protected lateinit var viewModel: VM
+    protected lateinit var mViewModel: VM
+
+    protected val viewModel: VM
+        get() = mViewModel
 
     /**
-     * Activity创建时调用，按顺序执行初始化流程
+     * 权限请求回调接口
      */
+    interface PermissionCallback {
+        fun onGranted()
+        fun onDenied(deniedPermissions: List<String>, shouldShowRationale: Boolean)
+    }
+
+    /**
+     * 权限请求 launcher（在 onCreate 中注册）
+     */
+    private lateinit var permissionLauncher: ActivityResultLauncher<Array<String>>
+    private var currentPermissionCallback: PermissionCallback? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // 初始化流程
+        // 必须在 onCreate 期间注册 ActivityResultLauncher
+        registerPermissionLauncher()
+        
         beforeInit()
         if (isEdgeToEdge) {
             SystemBarHelper.enableEdgeToEdge(this)
         }
-        viewModel = createViewModel()
+        mViewModel = createViewModel()
+    }
+
+    /**
+     * 完成视图设置后的初始化（子类调用）
+     */
+    protected fun onViewReady() {
         initView()
         setupObservers()
         initListener()
@@ -49,157 +69,120 @@ abstract class BaseActivity<VM : ViewModel> : AppCompatActivity() {
     }
 
     /**
-     * 在初始化之前调用，可用于设置主题、全屏等
+     * 注册权限请求 launcher
      */
-    protected open fun beforeInit() {}
-
-    /**
-     * 初始化视图，子类必须实现
-     * 通常在这里调用 setContentView() 和初始化 View
-     */
-    protected abstract fun initView()
-
-    /**
-     * 设置数据观察，子类可重写
-     * 用于观察 ViewModel 中的 LiveData
-     */
-    protected open fun setupObservers() {}
-
-    /**
-     * 初始化事件监听，子类可重写
-     * 用于设置点击事件等
-     */
-    protected open fun initListener() {}
-
-    /**
-     * 初始化数据，子类可重写
-     * 用于加载初始数据
-     */
-    protected open fun initData() {}
-
-    /**
-     * 在初始化之后调用，可用于执行延迟操作
-     */
-    protected open fun afterInit() {}
-
-    /**
-     * 抽象方法，子类必须实现以创建对应的ViewModel实例
-     * @return VM类型的ViewModel实例
-     */
-    protected abstract fun createViewModel(): VM
-
-    /**
-     * 获取ViewModel的便捷方法，使用泛型推断
-     * @return 指定类型的ViewModel实例
-     */
-    protected inline fun <reified T : ViewModel> getViewModel(): T {
-        return ViewModelProvider(this)[T::class.java]
+    private fun registerPermissionLauncher() {
+        permissionLauncher = registerForActivityResult(
+            ActivityResultContracts.RequestMultiplePermissions()
+        ) { permissions ->
+            handlePermissionResult(permissions)
+        }
     }
 
     /**
-     * 显示加载状态，子类可重写实现具体UI
+     * 请求权限
+     * @param permissions 要请求的权限数组
+     * @param callback 权限回调
      */
+    protected fun requestPermissions(permissions: Array<String>, callback: PermissionCallback?) {
+        currentPermissionCallback = callback
+        
+        val ungrantedPermissions = permissions.filter { 
+            ActivityCompat.checkSelfPermission(this, it) != android.content.pm.PackageManager.PERMISSION_GRANTED 
+        }.toTypedArray()
+        
+        if (ungrantedPermissions.isEmpty()) {
+            callback?.onGranted()
+            return
+        }
+        
+        permissionLauncher.launch(ungrantedPermissions)
+    }
+
+    /**
+     * 处理权限请求结果
+     */
+    private fun handlePermissionResult(permissions: Map<String, Boolean>) {
+        val grantedPermissions = permissions.filter { it.value }.keys.toList()
+        val deniedPermissions = permissions.filter { !it.value }.keys.toList()
+        
+        if (deniedPermissions.isEmpty()) {
+            currentPermissionCallback?.onGranted()
+        } else {
+            val shouldShowRationale = deniedPermissions.any { 
+                ActivityCompat.shouldShowRequestPermissionRationale(this, it) 
+            }
+            currentPermissionCallback?.onDenied(deniedPermissions, shouldShowRationale)
+        }
+        
+        currentPermissionCallback = null
+    }
+
+    protected open fun beforeInit() {}
+
+    protected abstract fun initView()
+
+    protected open fun setupObservers() {}
+
+    protected open fun initListener() {}
+
+    protected open fun initData() {}
+
+    protected open fun afterInit() {}
+
+    protected abstract fun createViewModel(): VM
+
+    protected inline fun <reified T : ViewModel> obtainViewModel(): T {
+        return ViewModelProvider(this)[T::class.java]
+    }
+
     protected open fun showLoading() {}
 
-    /**
-     * 隐藏加载状态，子类可重写实现具体UI
-     */
     protected open fun hideLoading() {}
 
-    /**
-     * 显示错误信息，子类可重写实现具体UI
-     * @param message 错误信息
-     */
     protected fun showError(message: String) {
         ToastUtil.showError(this, message)
     }
 
-    // ==================== Toast 便捷方法 ====================
-
-    /**
-     * 显示短时间Toast
-     * @param message 消息内容
-     */
     protected fun showToast(message: String) {
         ToastUtil.showShort(this, message)
     }
 
-    /**
-     * 显示长时间Toast
-     * @param message 消息内容
-     */
     protected fun showToastLong(message: String) {
         ToastUtil.showLong(this, message)
     }
 
-    /**
-     * 显示成功提示Toast
-     * @param message 消息内容
-     */
     protected fun showSuccess(message: String) {
         ToastUtil.showSuccess(this, message)
     }
 
-    /**
-     * 显示警告提示Toast
-     * @param message 消息内容
-     */
     protected fun showWarning(message: String) {
         ToastUtil.showWarning(this, message)
     }
 
-    /**
-     * 显示信息提示Toast
-     * @param message 消息内容
-     */
     protected fun showInfo(message: String) {
         ToastUtil.showInfo(this, message)
     }
 
-    // ==================== Log 便捷方法 ====================
-
-    /**
-     * 输出调试日志
-     * @param message 消息内容
-     */
     protected fun logD(message: String) {
         LogUtil.d(javaClass.simpleName, message)
     }
 
-    /**
-     * 输出信息日志
-     * @param message 消息内容
-     */
     protected fun logI(message: String) {
         LogUtil.i(javaClass.simpleName, message)
     }
 
-    /**
-     * 输出警告日志
-     * @param message 消息内容
-     */
     protected fun logW(message: String) {
         LogUtil.w(javaClass.simpleName, message)
     }
 
-    /**
-     * 输出错误日志
-     * @param message 消息内容
-     */
     protected fun logE(message: String) {
         LogUtil.e(javaClass.simpleName, message)
     }
 
-    /**
-     * 输出错误日志（包含异常）
-     * @param message 消息内容
-     * @param throwable 异常
-     */
     protected fun logE(message: String, throwable: Throwable) {
         LogUtil.e(javaClass.simpleName, message, throwable)
     }
-
-    // ==================== 生命周期回调 ====================
 
     override fun onStart() {
         super.onStart()
@@ -226,106 +209,52 @@ abstract class BaseActivity<VM : ViewModel> : AppCompatActivity() {
         super.onDestroy()
     }
 
-    /**
-     * Activity 进入前台时调用
-     */
     protected open fun onActivityStart() {}
-
-    /**
-     * Activity 恢复时调用
-     */
     protected open fun onActivityResume() {}
-
-    /**
-     * Activity 暂停时调用
-     */
     protected open fun onActivityPause() {}
-
-    /**
-     * Activity 停止时调用
-     */
     protected open fun onActivityStop() {}
-
-    /**
-     * Activity 销毁时调用
-     */
     protected open fun onActivityDestroy() {}
 
-    // ==================== System Bar 便捷方法 ====================
-
-    /**
-     * 启用 Edge-to-Edge 模式
-     */
     protected fun enableEdgeToEdge() {
         SystemBarHelper.enableEdgeToEdge(this)
     }
 
-    /**
-     * 设置状态栏颜色
-     */
     protected fun setStatusBarColor(@androidx.annotation.ColorInt color: Int) {
         SystemBarHelper.setStatusBarColor(this, color)
     }
 
-    /**
-     * 设置导航栏颜色
-     */
     protected fun setNavigationBarColor(@androidx.annotation.ColorInt color: Int) {
         SystemBarHelper.setNavigationBarColor(this, color)
     }
 
-    /**
-     * 设置透明状态栏
-     */
     protected fun setTransparentStatusBar() {
         SystemBarHelper.setTransparentStatusBar(this)
     }
 
-    /**
-     * 设置透明导航栏
-     */
     protected fun setTransparentNavigationBar() {
         SystemBarHelper.setTransparentNavigationBar(this)
     }
 
-    /**
-     * 设置透明系统栏
-     */
     protected fun setTransparentSystemBars() {
         SystemBarHelper.setTransparentSystemBars(this)
     }
 
-    /**
-     * 隐藏系统栏
-     */
     protected fun hideSystemBars() {
         SystemBarHelper.hideSystemBars(this)
     }
 
-    /**
-     * 显示系统栏
-     */
     protected fun showSystemBars() {
         SystemBarHelper.showSystemBars(this)
     }
 
-    /**
-     * 设置浅色状态栏（深色图标）
-     */
     protected fun setLightStatusBar(isLight: Boolean) {
         SystemBarHelper.setLightStatusBar(this, isLight)
     }
 
-    /**
-     * 设置浅色导航栏（深色图标）
-     */
     protected fun setLightNavigationBar(isLight: Boolean) {
         SystemBarHelper.setLightNavigationBar(this, isLight)
     }
 
-    /**
-     * 设置浅色系统栏
-     */
     protected fun setLightSystemBars(isLight: Boolean) {
         SystemBarHelper.setLightSystemBars(this, isLight)
     }

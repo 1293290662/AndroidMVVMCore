@@ -1,6 +1,7 @@
 package com.github.spadger.mvvmc.demo
 
 import android.os.Bundle
+import com.github.spadger.mvvmc.BaseActivity
 import com.github.spadger.mvvmc.BaseBindingActivity
 import com.github.spadger.mvvmc.demo.databinding.ActivityMainBinding
 import com.github.spadger.mvvmc.demo.vm.UserDetailViewModel
@@ -8,9 +9,8 @@ import com.github.spadger.mvvmc.ext.observeResult
 import com.github.spadger.mvvmc.util.DataStoreHolder
 import com.github.spadger.mvvmc.util.DataStoreKeys
 import com.github.spadger.mvvmc.util.DialogBuilder
-import com.github.spadger.mvvmc.util.PermissionCallback
 import com.github.spadger.mvvmc.util.PermissionConstants
-import com.github.spadger.mvvmc.util.PermissionHelper
+import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -36,7 +36,6 @@ class MainActivity : BaseBindingActivity<UserDetailViewModel, ActivityMainBindin
     override fun initView() {
         // 使用 binding 直接访问视图，无需 findViewById
         binding.tvUserName.text = "未登录"
-        binding.tvTitle.text = "MVVMCore Demo"
     }
 
     /**
@@ -51,25 +50,26 @@ class MainActivity : BaseBindingActivity<UserDetailViewModel, ActivityMainBindin
         )
 
         // 监听 DataStore 数据变化
-        DataStoreHolder.getInstance().getStringFlow(DataStoreKeys.USER_NAME)
-            .observe(this) { name ->
-                binding.tvUserName.text = name ?: "未登录"
-            }
+        lifecycleScope.launch {
+            DataStoreHolder.getInstance().getStringFlow(DataStoreKeys.USER_NAME)
+                .collect { name ->
+                    binding.tvUserName.text = name ?: "未登录"
+                }
+        }
     }
 
     /**
      * 初始化事件监听
      */
     override fun initListener() {
-        // 直接通过 binding 访问按钮，设置点击事件
         binding.btnLoadData.setOnClickListener {
             loadUserData()
         }
-        
+
         binding.btnShowDialog.setOnClickListener {
             showSampleDialog()
         }
-        
+
         binding.btnRequestPermission.setOnClickListener {
             requestPermissions()
         }
@@ -117,7 +117,7 @@ class MainActivity : BaseBindingActivity<UserDetailViewModel, ActivityMainBindin
     }
 
     private fun requestPermissions() {
-        val permissionHelper = PermissionHelper(this, object : PermissionCallback {
+        requestPermissions(PermissionConstants.STORAGE_PERMISSIONS, object : BaseActivity.PermissionCallback {
             override fun onGranted() {
                 showSuccess("权限已授予")
             }
@@ -126,12 +126,6 @@ class MainActivity : BaseBindingActivity<UserDetailViewModel, ActivityMainBindin
                 showWarning("权限被拒绝")
             }
         })
-
-        if (permissionHelper.areAllPermissionsGranted(PermissionConstants.STORAGE_PERMISSIONS)) {
-            logD("存储权限已授予")
-        } else {
-            permissionHelper.requestPermissions(PermissionConstants.STORAGE_PERMISSIONS)
-        }
     }
 
     private fun showSampleDialog() {
@@ -141,11 +135,11 @@ class MainActivity : BaseBindingActivity<UserDetailViewModel, ActivityMainBindin
         )
     }
 
-    private fun showLoading() {
+    /*private fun showLoading() {
         binding.progressBar.visibility = android.view.View.VISIBLE
-    }
+    }*/
 
-    private fun hideLoading() {
+    /*private fun hideLoading() {
         binding.progressBar.visibility = android.view.View.GONE
-    }
+    }*/
 }

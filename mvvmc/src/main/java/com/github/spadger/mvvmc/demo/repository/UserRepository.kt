@@ -1,10 +1,15 @@
 package com.github.spadger.mvvmc.demo.repository
 
 import com.github.spadger.mvvmc.BaseRepository
+import com.github.spadger.mvvmc.ExceptionHandler
+import com.github.spadger.mvvmc.Result
 import com.github.spadger.mvvmc.demo.model.*
+import com.github.spadger.mvvmc.model.BaseResponse
+import com.github.spadger.mvvmc.model.PageData
 import com.github.spadger.mvvmc.util.LogUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import retrofit2.http.*
 
 /**
  * 用户 Repository
@@ -13,7 +18,7 @@ import kotlinx.coroutines.withContext
 class UserRepository : BaseRepository() {
     
     private val api: UserApi by lazy {
-        createApi(UserApi::class.java)
+        createApi()
     }
     
     /**
@@ -24,7 +29,7 @@ class UserRepository : BaseRepository() {
             try {
                 val response = api.login(LoginRequest(username, password))
                 if (response.isSuccess() && response.data != null) {
-                    Result.Success(response.data)
+                    Result.Success(response.data!!)
                 } else {
                     Result.Error(Exception(response.getErrorMessage()))
                 }
@@ -43,7 +48,7 @@ class UserRepository : BaseRepository() {
             try {
                 val response = api.register(RegisterRequest(username, password, email))
                 if (response.isSuccess() && response.data != null) {
-                    Result.Success(response.data)
+                    Result.Success(response.data!!)
                 } else {
                     Result.Error(Exception(response.getErrorMessage()))
                 }
@@ -62,7 +67,7 @@ class UserRepository : BaseRepository() {
             try {
                 val response = api.getUserDetail(userId)
                 if (response.isSuccess() && response.data != null) {
-                    Result.Success(response.data)
+                    Result.Success(response.data!!)
                 } else {
                     Result.Error(Exception(response.getErrorMessage()))
                 }
@@ -81,7 +86,7 @@ class UserRepository : BaseRepository() {
             try {
                 val response = api.getUserList(page, pageSize)
                 if (response.isSuccess() && response.data != null) {
-                    Result.Success(response.data)
+                    Result.Success(response.data!!)
                 } else {
                     Result.Error(Exception(response.getErrorMessage()))
                 }
@@ -100,7 +105,7 @@ class UserRepository : BaseRepository() {
             try {
                 val response = api.updateUser(userId, request)
                 if (response.isSuccess() && response.data != null) {
-                    Result.Success(response.data)
+                    Result.Success(response.data!!)
                 } else {
                     Result.Error(Exception(response.getErrorMessage()))
                 }
@@ -118,15 +123,27 @@ class UserRepository : BaseRepository() {
  */
 interface UserApi {
     
-    suspend fun login(request: LoginRequest): LoginResponseType
+    @POST("api/user/login")
+    suspend fun login(@Body request: LoginRequest): LoginResponseType
     
-    suspend fun register(request: RegisterRequest): UserResponse
+    @POST("api/user/register")
+    suspend fun register(@Body request: RegisterRequest): UserResponse
     
-    suspend fun getUserDetail(userId: String): UserDetailResponse
+    @GET("api/user/{userId}")
+    suspend fun getUserDetail(@Path("userId") userId: String): UserDetailResponse
     
-    suspend fun getUserList(page: Int, pageSize: Int): UserListResponse
+    @GET("api/user/list")
+    suspend fun getUserList(@Query("page") page: Int, @Query("pageSize") pageSize: Int): UserListResponse
     
-    suspend fun updateUser(userId: String, request: UpdateUserRequest): UserResponse
+    @PUT("api/user/{userId}")
+    suspend fun updateUser(@Path("userId") userId: String, @Body request: UpdateUserRequest): UserResponse
     
+    @POST("api/user/logout")
     suspend fun logout(): EmptyResponseType
 }
+
+typealias LoginResponseType = BaseResponse<LoginResponse>
+typealias UserResponse = BaseResponse<User>
+typealias UserDetailResponse = BaseResponse<UserDetail>
+typealias UserListResponse = BaseResponse<PageData<User>>
+typealias EmptyResponseType = BaseResponse<Unit>

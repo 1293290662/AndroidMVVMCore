@@ -17,11 +17,37 @@ object RetrofitProvider {
     private lateinit var baseUrl: String
 
     /**
-     * 初始化RetrofitProvider
+     * 当前配置
+     */
+    private var currentConfig: Config = Config("")
+
+    /**
+     * 配置类
+     */
+    data class Config(
+        val baseUrl: String,
+        val skipSslVerification: Boolean = false,
+        val connectTimeout: Long = 30L,
+        val readTimeout: Long = 30L,
+        val writeTimeout: Long = 30L
+    )
+
+    /**
+     * 初始化RetrofitProvider（简化版本，仅传入baseUrl）
      * @param baseUrl API基础URL
      */
     fun init(baseUrl: String) {
-        RetrofitProvider.baseUrl = baseUrl
+        this.baseUrl = baseUrl
+        this.currentConfig = Config(baseUrl)
+    }
+
+    /**
+     * 初始化RetrofitProvider（完整版本，传入配置）
+     * @param config 配置参数
+     */
+    fun init(config: Config) {
+        this.baseUrl = config.baseUrl
+        this.currentConfig = config
     }
 
     /**
@@ -33,9 +59,17 @@ object RetrofitProvider {
         if (!::baseUrl.isInitialized) {
             throw IllegalStateException("RetrofitProvider not initialized. Call init() first with a base URL.")
         }
+        
+        val okHttpConfig = OkHttpProvider.Config(
+            connectTimeout = currentConfig.connectTimeout,
+            readTimeout = currentConfig.readTimeout,
+            writeTimeout = currentConfig.writeTimeout,
+            skipSslVerification = currentConfig.skipSslVerification
+        )
+        
         return Retrofit.Builder()
             .baseUrl(baseUrl)
-            .client(OkHttpProvider.create())
+            .client(OkHttpProvider.create(okHttpConfig))
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }

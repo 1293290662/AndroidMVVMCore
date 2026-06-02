@@ -8,6 +8,7 @@
 package com.github.spadger.mvvmc.nav
 
 import androidx.navigation.NavOptions
+import com.github.spadger.mvvmc.R
 
 /**
  * 导航选项配置类
@@ -38,10 +39,10 @@ object NavOptionsFactory {
      */
     fun slideInFromBottom(): NavOptions {
         return NavOptions.Builder()
-            .setEnterAnim(android.R.anim.slide_in_up)
-            .setExitAnim(android.R.anim.slide_out_down)
-            .setPopEnterAnim(android.R.anim.slide_in_up)
-            .setPopExitAnim(android.R.anim.slide_out_down)
+            .setEnterAnim(R.anim.slide_in_up)
+            .setExitAnim(R.anim.slide_out_down)
+            .setPopEnterAnim(R.anim.slide_in_up)
+            .setPopExitAnim(R.anim.slide_out_down)
             .build()
     }
 
@@ -62,10 +63,10 @@ object NavOptionsFactory {
      */
     fun scaleIn(): NavOptions {
         return NavOptions.Builder()
-            .setEnterAnim(android.R.anim.scale_in)
-            .setExitAnim(android.R.anim.scale_out)
-            .setPopEnterAnim(android.R.anim.scale_in)
-            .setPopExitAnim(android.R.anim.scale_out)
+            .setEnterAnim(R.anim.scale_in)
+            .setExitAnim(R.anim.scale_out)
+            .setPopEnterAnim(R.anim.scale_in)
+            .setPopExitAnim(R.anim.scale_out)
             .build()
     }
 

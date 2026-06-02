@@ -54,8 +54,8 @@ fun <T> LiveData<Result<T>>.observeResult(
                 onSuccess(result.data)
             }
             is Result.Error -> {
-                LogUtil.e("LiveData", "Error: ${result.exception.message}", result.exception)
-                onError?.invoke(result.exception)
+                LogUtil.e("LiveData", "Error: ${result.err.message}", result.err)
+                onError?.invoke(result.err)
             }
             is Result.Loading -> {
                 LogUtil.d("LiveData", "Loading...")

@@ -20,4 +20,25 @@
         android:text="user@example.com"
         android:layout_marginTop="8dp" />
 
+    <Button
+        android:id="@+id/btn_load_data"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="加载用户数据"
+        android:layout_marginTop="16dp" />
+
+    <Button
+        android:id="@+id/btn_show_dialog"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="显示对话框"
+        android:layout_marginTop="8dp" />
+
+    <Button
+        android:id="@+id/btn_request_permission"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="请求权限"
+        android:layout_marginTop="8dp" />
+
 </LinearLayout>

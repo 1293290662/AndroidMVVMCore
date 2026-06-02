@@ -23,24 +23,14 @@ import com.github.spadger.mvvmc.util.LogUtil
 import com.github.spadger.mvvmc.util.ToastUtil
 
 abstract class BaseBindingFragment<VM : ViewModel, VB : ViewBinding> : Fragment() {
-    /**
-     * 泛型ViewModel实例
-     */
-    protected lateinit var viewModel: VM
+    protected lateinit var mViewModel: VM
     
-    /**
-     * View Binding 实例
-     */
+    protected val viewModel: VM
+        get() = mViewModel
+    
     protected lateinit var binding: VB
     
-    /**
-     * 懒加载标记
-     */
     private var isFirstLoad = true
-    
-    /**
-     * 视图是否创建完成
-     */
     private var isViewCreated = false
 
     override fun onCreateView(
@@ -49,7 +39,7 @@ abstract class BaseBindingFragment<VM : ViewModel, VB : ViewBinding> : Fragment(
         savedInstanceState: Bundle?
     ): View? {
         beforeInit()
-        viewModel = createViewModel()
+        mViewModel = createViewModel()
         binding = createViewBinding(inflater, container)
         return binding.root
     }
@@ -80,9 +70,6 @@ abstract class BaseBindingFragment<VM : ViewModel, VB : ViewBinding> : Fragment(
 
     protected open fun beforeInit() {}
 
-    /**
-     * 创建 View Binding，子类必须实现
-     */
     protected abstract fun createViewBinding(inflater: LayoutInflater, container: ViewGroup?): VB
 
     protected open fun initView() {}
@@ -93,7 +80,7 @@ abstract class BaseBindingFragment<VM : ViewModel, VB : ViewBinding> : Fragment(
 
     protected abstract fun createViewModel(): VM
 
-    protected inline fun <reified T : ViewModel> getViewModel(): T {
+    protected inline fun <reified T : ViewModel> obtainViewModel(): T {
         return ViewModelProvider(this)[T::class.java]
     }
 
@@ -104,7 +91,6 @@ abstract class BaseBindingFragment<VM : ViewModel, VB : ViewBinding> : Fragment(
         context?.let { ToastUtil.showError(it, message) }
     }
 
-    // ==================== Toast 便捷方法 ====================
     protected fun showToast(message: String) {
         context?.let { ToastUtil.showShort(it, message) }
     }
@@ -125,7 +111,6 @@ abstract class BaseBindingFragment<VM : ViewModel, VB : ViewBinding> : Fragment(
         context?.let { ToastUtil.showInfo(it, message) }
     }
 
-    // ==================== Log 便捷方法 ====================
     protected fun logD(message: String) {
         LogUtil.d(javaClass.simpleName, message)
     }
@@ -145,8 +130,6 @@ abstract class BaseBindingFragment<VM : ViewModel, VB : ViewBinding> : Fragment(
     protected fun logE(message: String, throwable: Throwable) {
         LogUtil.e(javaClass.simpleName, message, throwable)
     }
-
-    // ==================== 导航便捷方法 ====================
 
     protected fun navigate(@androidx.annotation.IdRes resId: Int) {
         Navigator.navigate(this, resId)
@@ -168,7 +151,6 @@ abstract class BaseBindingFragment<VM : ViewModel, VB : ViewBinding> : Fragment(
         return Navigator.canGoBack(this)
     }
 
-    // ==================== 生命周期回调 ====================
     override fun onStart() {
         super.onStart()
         onFragmentStart()

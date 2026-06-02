@@ -14,10 +14,10 @@ import com.google.gson.annotations.SerializedName
  */
 open class BaseRequest {
     @SerializedName("page")
-    var page: Int = 1
+    open var page: Int = 1
     
     @SerializedName("page_size")
-    var pageSize: Int = 20
+    open var pageSize: Int = 20
 }
 
 /**
@@ -77,7 +77,7 @@ data class PageData<T>(
 }
 
 /**
- * 空响应模型（用于不需要返回数据的接口）
+ * 空响应模型
  */
 class EmptyResponse
 
@@ -130,13 +130,7 @@ class IdsRequest(
  */
 open class SearchRequest(
     @SerializedName("keyword")
-    var keyword: String = "",
-    
-    @SerializedName("page")
-    override var page: Int = 1,
-    
-    @SerializedName("page_size")
-    override var pageSize: Int = 20
+    var keyword: String = ""
 ) : BaseRequest()
 
 /**

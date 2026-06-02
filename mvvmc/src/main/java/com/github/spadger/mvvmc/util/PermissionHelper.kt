@@ -98,7 +98,6 @@ object PermissionConstants {
     
     // ============ Android 14+ 权限 ============
     const val READ_MEDIA_VISUAL_USER_SELECTED = Manifest.permission.READ_MEDIA_VISUAL_USER_SELECTED
-    const val USE_BIOMETRIC_INTERNAL = Manifest.permission.USE_BIOMETRIC_INTERNAL
     
     // ============ 权限组 ============
     val STORAGE_PERMISSIONS = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -282,18 +281,16 @@ class PermissionHelper(
     private val showRationaleDialog: Boolean = true,
     private val showSettingsDialog: Boolean = true
 ) {
-    private lateinit var requestPermissionLauncher: ActivityResultLauncher<Array<String>>
+    private var requestPermissionLauncher: ActivityResultLauncher<Array<String>>? = null
     private var pendingPermissions: Array<String> = emptyArray()
     
-    init {
-        initLauncher()
-    }
-    
-    private fun initLauncher() {
-        requestPermissionLauncher = activity.registerForActivityResult(
-            ActivityResultContracts.RequestMultiplePermissions()
-        ) { permissions ->
-            handleResult(permissions)
+    private fun ensureLauncherInitialized() {
+        if (requestPermissionLauncher == null) {
+            requestPermissionLauncher = activity.registerForActivityResult(
+                ActivityResultContracts.RequestMultiplePermissions()
+            ) { permissions ->
+                handleResult(permissions)
+            }
         }
     }
     
@@ -323,7 +320,8 @@ class PermissionHelper(
         if (showRationaleDialog && needRationale) {
             showPermissionRationaleDialog(ungrantedPermissions)
         } else {
-            requestPermissionLauncher.launch(ungrantedPermissions)
+            ensureLauncherInitialized()
+            requestPermissionLauncher?.launch(ungrantedPermissions)
         }
     }
     
@@ -339,7 +337,8 @@ class PermissionHelper(
             .setPositiveText("知道了")
             .setNegativeText("取消")
             .setPositiveListener {
-                requestPermissionLauncher.launch(permissions)
+                ensureLauncherInitialized()
+                requestPermissionLauncher?.launch(permissions)
             }
             .setNegativeListener {
                 callback?.onDenied(permissions.toList(), false)
@@ -481,18 +480,16 @@ class FragmentPermissionHelper(
     private val showRationaleDialog: Boolean = true,
     private val showSettingsDialog: Boolean = true
 ) {
-    private lateinit var requestPermissionLauncher: ActivityResultLauncher<Array<String>>
+    private var requestPermissionLauncher: ActivityResultLauncher<Array<String>>? = null
     private var pendingPermissions: Array<String> = emptyArray()
     
-    init {
-        initLauncher()
-    }
-    
-    private fun initLauncher() {
-        requestPermissionLauncher = fragment.registerForActivityResult(
-            ActivityResultContracts.RequestMultiplePermissions()
-        ) { permissions ->
-            handleResult(permissions)
+    private fun ensureLauncherInitialized() {
+        if (requestPermissionLauncher == null) {
+            requestPermissionLauncher = fragment.registerForActivityResult(
+                ActivityResultContracts.RequestMultiplePermissions()
+            ) { permissions ->
+                handleResult(permissions)
+            }
         }
     }
     
@@ -515,7 +512,8 @@ class FragmentPermissionHelper(
         if (showRationaleDialog && needRationale) {
             showPermissionRationaleDialog(ungrantedPermissions)
         } else {
-            requestPermissionLauncher.launch(ungrantedPermissions)
+            ensureLauncherInitialized()
+            requestPermissionLauncher?.launch(ungrantedPermissions)
         }
     }
     
@@ -528,7 +526,8 @@ class FragmentPermissionHelper(
             .setPositiveText("知道了")
             .setNegativeText("取消")
             .setPositiveListener {
-                requestPermissionLauncher.launch(permissions)
+                ensureLauncherInitialized()
+                requestPermissionLauncher?.launch(permissions)
             }
             .setNegativeListener {
                 callback?.onDenied(permissions.toList(), false)

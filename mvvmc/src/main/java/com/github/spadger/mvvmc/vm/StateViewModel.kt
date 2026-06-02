@@ -14,6 +14,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.spadger.mvvmc.ExceptionHandler
 import com.github.spadger.mvvmc.Result
 import com.github.spadger.mvvmc.util.LogUtil
 import kotlinx.coroutines.CoroutineScope
@@ -26,7 +27,7 @@ import kotlinx.coroutines.withContext
  * ViewModel 状态包装类
  * 提供更简洁的状态管理 API
  */
-class StateViewModel<T> : ViewModel() {
+open class StateViewModel<T> : ViewModel() {
     private val jobs = mutableListOf<Job>()
     
     private val _state = MutableLiveData<Result<T>>()
@@ -41,30 +42,30 @@ class StateViewModel<T> : ViewModel() {
     private val _error = MutableLiveData<Exception?>()
     val error: LiveData<Exception?> = _error
     
-    protected fun setLoading() {
-        _state.value = Result.Loading
-        _loading.value = true
+    open fun setLoading() {
+        _state.postValue(Result.Loading)
+        _loading.postValue(true)
     }
     
-    protected fun setSuccess(data: T) {
-        _state.value = Result.Success(data)
-        _data.value = data
-        _loading.value = false
-        _error.value = null
+    open fun setSuccess(data: T) {
+        _state.postValue(Result.Success(data))
+        _data.postValue(data)
+        _loading.postValue(false)
+        _error.postValue(null)
     }
     
-    protected fun setError(exception: Exception) {
-        _state.value = Result.Error(exception)
-        _loading.value = false
-        _error.value = exception
+    open fun setError(exception: Exception) {
+        _state.postValue(Result.Error(exception))
+        _loading.postValue(false)
+        _error.postValue(exception)
     }
     
-    protected fun setIdle() {
-        _state.value = Result.Idle
-        _loading.value = false
+    open fun setIdle() {
+        _state.postValue(Result.Idle)
+        _loading.postValue(false)
     }
     
-    protected fun launchOnUI(block: suspend CoroutineScope.() -> Unit): Job {
+    open fun launchOnUI(block: suspend CoroutineScope.() -> Unit): Job {
         val job = viewModelScope.launch(Dispatchers.Main) {
             block()
         }
@@ -73,7 +74,7 @@ class StateViewModel<T> : ViewModel() {
         return job
     }
     
-    protected fun launchOnIO(block: suspend CoroutineScope.() -> Unit): Job {
+    open fun launchOnIO(block: suspend CoroutineScope.() -> Unit): Job {
         return launchOnUI {
             withContext(Dispatchers.IO) {
                 block()
@@ -128,52 +129,53 @@ abstract class ListViewModel<T> : ViewModel() {
     val isEmpty: Boolean
         get() = _listData.value?.isEmpty() == true
     
-    protected fun setRefreshing() {
-        _refreshing.value = true
-        _loading.value = true
+    open fun setRefreshing() {
+        _refreshing.postValue(true)
+        _loading.postValue(true)
     }
     
-    protected fun setLoadMore() {
-        _loadMore.value = true
+    open fun setLoadMore() {
+        _loadMore.postValue(true)
     }
     
-    protected fun setListSuccess(list: List<T>, hasMore: Boolean = false) {
+    open fun setListSuccess(list: List<T>, hasMore: Boolean = false) {
         this.hasMore = hasMore
-        _refreshing.value = false
-        _loadMore.value = false
-        _loading.value = false
-        _empty.value = list.isEmpty()
+        _refreshing.postValue(false)
+        _loadMore.postValue(false)
+        _loading.postValue(false)
+        _empty.postValue(list.isEmpty())
         
         if (currentPage == 1) {
-            _listData.value = list.toMutableList()
+            _listData.postValue(list.toMutableList())
         } else {
-            _listData.value?.addAll(list)
-            _listData.value = _listData.value
+            val currentList = _listData.value?.toMutableList() ?: mutableListOf()
+            currentList.addAll(list)
+            _listData.postValue(currentList)
         }
     }
     
-    protected fun setListError(exception: Exception) {
-        _refreshing.value = false
-        _loadMore.value = false
-        _loading.value = false
-        _error.value = exception
+    open fun setListError(exception: Exception) {
+        _refreshing.postValue(false)
+        _loadMore.postValue(false)
+        _loading.postValue(false)
+        _error.postValue(exception)
     }
     
-    protected fun clearList() {
+    open fun clearList() {
         currentPage = 1
-        _listData.value = mutableListOf()
-        _empty.value = true
+        _listData.postValue(mutableListOf())
+        _empty.postValue(true)
     }
     
-    protected fun nextPage(): Int {
+    open fun nextPage(): Int {
         return ++currentPage
     }
     
-    protected fun resetPage() {
+    open fun resetPage() {
         currentPage = 1
     }
     
-    protected fun launchOnUI(block: suspend CoroutineScope.() -> Unit): Job {
+    open fun launchOnUI(block: suspend CoroutineScope.() -> Unit): Job {
         val job = viewModelScope.launch(Dispatchers.Main) {
             block()
         }
@@ -182,7 +184,7 @@ abstract class ListViewModel<T> : ViewModel() {
         return job
     }
     
-    protected fun launchOnIO(block: suspend CoroutineScope.() -> Unit): Job {
+    open fun launchOnIO(block: suspend CoroutineScope.() -> Unit): Job {
         return launchOnUI {
             withContext(Dispatchers.IO) {
                 block()
@@ -202,31 +204,5 @@ abstract class ListViewModel<T> : ViewModel() {
         super.onCleared()
         jobs.forEach { it.cancel() }
         jobs.clear()
-    }
-}
-
-/**
- * 异常处理工具类
- */
-object ExceptionHandler {
-    fun handleException(e: Exception): Exception {
-        LogUtil.e("ExceptionHandler", "Error occurred: ${e.message}", e)
-        return when (e) {
-            is java.net.UnknownHostException -> Exception("网络连接失败，请检查网络设置")
-            is java.net.SocketTimeoutException -> Exception("网络请求超时，请稍后重试")
-            is java.io.IOException -> Exception("网络异常，请稍后重试")
-            is com.google.gson.JsonParseException -> Exception("数据解析失败")
-            is retrofit2.HttpException -> {
-                when (e.code()) {
-                    400 -> Exception("请求参数错误")
-                    401 -> Exception("未授权，请重新登录")
-                    403 -> Exception("没有权限访问")
-                    404 -> Exception("请求的资源不存在")
-                    500 -> Exception("服务器内部错误")
-                    else -> Exception("请求失败: ${e.code()}")
-                }
-            }
-            else -> e
-        }
     }
 }

@@ -9,7 +9,13 @@ package com.github.spadger.mvvmc.network
 
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
+import javax.net.ssl.SSLContext
+import javax.net.ssl.SSLSocketFactory
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
 
 object OkHttpProvider {
     /**
@@ -28,21 +34,73 @@ object OkHttpProvider {
     private const val WRITE_TIMEOUT = 30L
 
     /**
+     * 网络配置类
+     */
+    data class Config(
+        val connectTimeout: Long = CONNECT_TIMEOUT,
+        val readTimeout: Long = READ_TIMEOUT,
+        val writeTimeout: Long = WRITE_TIMEOUT,
+        val enableLogging: Boolean = true,
+        val skipSslVerification: Boolean = false
+    )
+
+    /**
      * 创建配置好的OkHttpClient实例
      * @return OkHttpClient实例
      */
     fun create(): OkHttpClient {
-        // 创建日志拦截器，输出完整的请求和响应信息
-        val loggingInterceptor = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+        return create(Config())
+    }
+
+    /**
+     * 创建配置好的OkHttpClient实例（带配置参数）
+     * @param config 配置参数
+     * @return OkHttpClient实例
+     */
+    fun create(config: Config): OkHttpClient {
+        val builder = OkHttpClient.Builder()
+            .connectTimeout(config.connectTimeout, TimeUnit.SECONDS)
+            .readTimeout(config.readTimeout, TimeUnit.SECONDS)
+            .writeTimeout(config.writeTimeout, TimeUnit.SECONDS)
+
+        if (config.enableLogging) {
+            val loggingInterceptor = HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.BODY
+            }
+            builder.addInterceptor(loggingInterceptor)
         }
 
-        return OkHttpClient.Builder()
-            .addInterceptor(loggingInterceptor)          // 添加日志拦截器
-            .addInterceptor(HeaderInterceptor())         // 添加请求头拦截器
-            .connectTimeout(CONNECT_TIMEOUT, TimeUnit.SECONDS)    // 设置连接超时
-            .readTimeout(READ_TIMEOUT, TimeUnit.SECONDS)          // 设置读取超时
-            .writeTimeout(WRITE_TIMEOUT, TimeUnit.SECONDS)        // 设置写入超时
-            .build()
+        builder.addInterceptor(HeaderInterceptor())
+
+        if (config.skipSslVerification) {
+            builder.sslSocketFactory(createInsecureSslSocketFactory(), createTrustAllManager())
+            builder.hostnameVerifier { _, _ -> true }
+        }
+
+        return builder.build()
+    }
+
+    /**
+     * 创建不验证SSL证书的SSLSocketFactory
+     */
+    private fun createInsecureSslSocketFactory(): SSLSocketFactory {
+        return try {
+            val sslContext = SSLContext.getInstance("TLS")
+            sslContext.init(null, arrayOf(createTrustAllManager()), SecureRandom())
+            sslContext.socketFactory
+        } catch (e: Exception) {
+            throw RuntimeException("Failed to create insecure SSL socket factory", e)
+        }
+    }
+
+    /**
+     * 创建信任所有证书的TrustManager
+     */
+    private fun createTrustAllManager(): X509TrustManager {
+        return object : X509TrustManager {
+            override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {}
+            override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {}
+            override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
+        }
     }
 }
