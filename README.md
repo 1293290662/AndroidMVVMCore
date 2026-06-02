@@ -11,16 +11,17 @@
 3. [安装指南](#安装指南)
 4. [快速开始](#快速开始)
 5. [基类组件](#基类组件)
-6. [网络请求](#网络请求)
-7. [数据存储](#数据存储)
-8. [工具类](#工具类)
-9. [状态管理](#状态管理)
-10. [导航管理](#导航管理)
-11. [系统栏管理](#系统栏管理)
-12. [表单验证](#表单验证)
-13. [日期处理](#日期处理)
-14. [项目结构](#项目结构)
-15. [许可证](#许可证)
+6. [权限管理](#权限管理)
+7. [网络请求](#网络请求)
+8. [数据存储](#数据存储)
+9. [工具类](#工具类)
+10. [状态管理](#状态管理)
+11. [导航管理](#导航管理)
+12. [系统栏管理](#系统栏管理)
+13. [表单验证](#表单验证)
+14. [日期处理](#日期处理)
+15. [项目结构](#项目结构)
+16. [许可证](#许可证)
 
 ---
 
@@ -34,19 +35,22 @@ GitHub: https://github.com/ZhangYuanYang-spadger
 
 ## 功能特性
 
-- **BaseActivity**: Activity 基类，支持 ViewModel 和生命周期管理
+- **BaseActivity**: Activity 基类，支持 ViewModel、生命周期管理和权限请求
 - **BaseFragment**: Fragment 基类，支持 ViewModel 和懒加载
 - **BaseBindingActivity**: 支持 View Binding 的 Activity
 - **BaseBindingFragment**: 支持 View Binding 的 Fragment
 - **BaseViewModel**: ViewModel 基类，提供协程和错误处理
 - **BaseRepository**: Repository 基类，封装网络请求
+- **StateViewModel**: 带状态管理的 ViewModel
 - **网络组件**: Retrofit、OkHttp 配置和拦截器
 - **结果处理**: 通用的 Result 和 NetworkResponse 封装
-- **DataStore**: Jetpack DataStore 封装
+- **DataStore**: Jetpack DataStore 封装（替代 SharedPreferences）
 - **UI 工具**: LogUtil、ToastUtil、DialogBuilder、StateLayout
-- **导航管理**: Navigator 封装
+- **导航管理**: Navigator 封装 Navigation Component
 - **系统栏**: Edge-to-Edge 支持和 Insets 处理
-- **表单验证**: 常用验证工具
+- **表单验证**: 常用验证工具（手机号、邮箱、身份证等）
+- **日期工具**: DateUtil 日期处理和格式化
+- **权限管理**: 符合上架要求的运行时权限封装
 
 ---
 
@@ -114,13 +118,16 @@ class MainActivity : BaseBindingActivity<MainViewModel, ActivityMainBinding>() {
     }
 
     override fun createViewModel(): MainViewModel {
-        return getViewModel()
+        return obtainViewModel()
     }
 
     override fun setupObservers() {
-        viewModel.data.observe(this) { data ->
-            // 处理数据
-        }
+        viewModel.state.observeResult(
+            this,
+            onSuccess = { data -> handleSuccess(data) },
+            onError = { e -> handleError(e) },
+            onLoading = { showLoading() }
+        )
     }
 
     override fun initData() {
@@ -158,6 +165,48 @@ class MainRepository : BaseRepository() {
     suspend fun fetchData(): Result<String> {
         return apiCall { apiService.getData() }
     }
+}
+```
+
+### 权限请求
+
+```kotlin
+requestPermissions(PermissionConstants.STORAGE_PERMISSIONS, object : BaseActivity.PermissionCallback {
+    override fun onGranted() {
+        showSuccess("权限已授予")
+    }
+
+    override fun onDenied(deniedPermissions: List<String>, shouldShowRationale: Boolean) {
+        showWarning("权限被拒绝")
+    }
+})
+```
+
+---
+
+## 权限管理
+
+### 预定义权限常量
+
+```kotlin
+// 单个权限
+PermissionConstants.CAMERA                 // 相机权限
+PermissionConstants.RECORD_AUDIO           // 录音权限
+PermissionConstants.POST_NOTIFICATIONS     // 通知权限（Android 13+）
+
+// 权限组（自动适配不同 Android 版本）
+PermissionConstants.STORAGE_PERMISSIONS     // 存储权限组
+PermissionConstants.LOCATION_PERMISSIONS    // 位置权限组
+PermissionConstants.CONTACTS_PERMISSIONS    // 联系人权限组
+PermissionConstants.SMS_PERMISSIONS         // 短信权限组
+```
+
+### 权限回调接口
+
+```kotlin
+interface PermissionCallback {
+    fun onGranted()                                    // 所有权限都已授予
+    fun onDenied(deniedPermissions: List<String>, shouldShowRationale: Boolean)  // 权限被拒绝
 }
 ```
 
