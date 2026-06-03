@@ -52,10 +52,10 @@ dependencies {
     api(libs.gson)
 
     // 内部实现依赖 - 使用 implementation 隐藏
-    implementation(libs.retrofit)
-    implementation(libs.retrofit.converter.gson)
-    implementation(libs.okhttp)
-    implementation(libs.okhttp.logging.interceptor)
+    api(libs.retrofit)
+    api(libs.retrofit.converter.gson)
+    api(libs.okhttp)
+    api(libs.okhttp.logging.interceptor)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -70,7 +70,7 @@ afterEvaluate {
 
                 groupId = "com.github.ZhangYuanYang-spadger"
                     artifactId = "AndroidMVVMCore"
-                    version = "1.0.1"
+                    version = "1.0.2"
 
                     pom {
                         name.set("MVVMCore")

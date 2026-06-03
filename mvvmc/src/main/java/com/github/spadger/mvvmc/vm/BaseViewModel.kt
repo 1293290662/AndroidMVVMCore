@@ -2,19 +2,25 @@
  * @author ZhangYuanYang
  * @email 1293290662@qq.com
  * @date 2024/01/01
- * 
- * ViewModel基类，提供协程调度、网络请求安全处理和生命周期管理
+ *
+ * ViewModel 基类，提供协程调度、网络请求安全处理和生命周期管理
  */
-package com.github.spadger.mvvmc
+package com.github.spadger.mvvmc.vm
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.github.spadger.mvvmc.model.BaseData
+import com.github.spadger.mvvmc.ExceptionHandler
+import com.github.spadger.mvvmc.Result
 import com.github.spadger.mvvmc.util.LogUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.github.spadger.mvvmc.ext.VmLiveData
+import com.github.spadger.mvvmc.ext.paresVmException
+import com.github.spadger.mvvmc.ext.paresVmResult
 
 open class BaseViewModel : ViewModel() {
     /**
@@ -73,46 +79,28 @@ open class BaseViewModel : ViewModel() {
         jobs.clear()
     }
 
-    // ==================== Log 便捷方法 ====================
+}
 
-    /**
-     * 输出调试日志
-     * @param message 消息内容
-     */
-    protected fun logD(message: String) {
-        LogUtil.d(javaClass.simpleName, message)
-    }
-
-    /**
-     * 输出信息日志
-     * @param message 消息内容
-     */
-    protected fun logI(message: String) {
-        LogUtil.i(javaClass.simpleName, message)
-    }
-
-    /**
-     * 输出警告日志
-     * @param message 消息内容
-     */
-    protected fun logW(message: String) {
-        LogUtil.w(javaClass.simpleName, message)
-    }
-
-    /**
-     * 输出错误日志
-     * @param message 消息内容
-     */
-    protected fun logE(message: String) {
-        LogUtil.e(javaClass.simpleName, message)
-    }
-
-    /**
-     * 输出错误日志（包含异常）
-     * @param message 消息内容
-     * @param throwable 异常
-     */
-    protected fun logE(message: String, throwable: Throwable) {
-        LogUtil.e(javaClass.simpleName, message, throwable)
+/**
+ * BaseViewModel 开启协程扩展
+ * 简化网络请求调用，自动处理 Loading/Success/Error 状态
+ *
+ * @param request 网络请求挂起函数
+ * @param viewState 用于接收结果的 LiveData
+ */
+fun <T> BaseViewModel.launchVmRequest(
+    request: suspend () -> BaseData<T>,
+    viewState: VmLiveData<T>
+) {
+    viewModelScope.launch {
+        runCatching {
+            viewState.value = Result.Loading
+            request()
+        }.onSuccess {
+            viewState.paresVmResult(it)
+        }.onFailure {
+            LogUtil.d("BaseViewModel", "Request failed: ${it.message}")
+            viewState.paresVmException(it)
+        }
     }
 }

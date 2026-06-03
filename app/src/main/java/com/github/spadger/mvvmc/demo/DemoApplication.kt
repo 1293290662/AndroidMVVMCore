@@ -12,8 +12,8 @@ class DemoApplication : Application() {
         // 初始化 Retrofit（设置 Base URL）
         RetrofitProvider.init(
             RetrofitProvider.Config(
-                baseUrl = "https://test-api.example.com/",
-                skipSslVerification = true,  // 跳过 SSL 证书验证
+                baseUrl = "https://app.hb-whwl.com/",
+                skipSslVerification = false,  // 跳过 SSL 证书验证
                 connectTimeout = 30L,
                 readTimeout = 30L,
                 writeTimeout = 30L
