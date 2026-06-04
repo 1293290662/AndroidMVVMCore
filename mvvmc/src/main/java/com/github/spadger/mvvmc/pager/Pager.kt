@@ -91,6 +91,12 @@ class Pager<T>(
     val isLoadingData: Boolean get() = isLoading
 
     /**
+     * 是否可以加载更多
+     * @return true 表示可以加载更多，false 表示不能（没有更多数据或正在加载）
+     */
+    fun canLoadMore(): Boolean = hasMore && !isLoading
+
+    /**
      * 加载第一页数据
      */
     fun loadData() {
@@ -100,6 +106,7 @@ class Pager<T>(
         hasMore = true
         isLoading = true
         _loadState.value = PagingLoadState.LoadingFirst
+        com.github.spadger.mvvmc.util.LogUtil.d("Pager", "loadData called, currentPage=$currentPage, pageSize=$pageSize")
 
         scope.launch {
             try {

@@ -8,12 +8,16 @@
 package com.github.spadger.mvvmc.demo.repository
 
 import com.github.spadger.mvvmc.BaseRepository
+import com.github.spadger.mvvmc.demo.model.ContractResponse
 import com.github.spadger.mvvmc.demo.model.LoginRequest
 import com.github.spadger.mvvmc.demo.model.LoginResponse
-import com.github.spadger.mvvmc.demo.model.UserDetail
+import com.github.spadger.mvvmc.model.BasePageResponse
 import com.github.spadger.mvvmc.model.BaseResponse
 import com.github.spadger.mvvmc.pager.PagedData
-import kotlinx.coroutines.delay
+import com.github.spadger.mvvmc.util.LogUtil
+import retrofit2.http.Body
+import retrofit2.http.POST
+import retrofit2.http.Query
 
 class DemoRepository : BaseRepository() {
 
@@ -29,30 +33,30 @@ class DemoRepository : BaseRepository() {
         }
     }
 
-    suspend fun getUserList(page: Int, pageSize: Int): PagedData<UserDetail> {
-        delay(1000)
-
-        val totalCount = 100
-        val totalPage = (totalCount + pageSize - 1) / pageSize
-        val startIndex = (page - 1) * pageSize
-        val endIndex = minOf(startIndex + pageSize, totalCount)
-
-        val users = mutableListOf<UserDetail>()
-        for (i in startIndex until endIndex) {
-            users.add(UserDetail(
-                id = "${i + 1}",
-                name = "用户${i + 1}",
-                email = "user${i + 1}@example.com"
-            ))
+    suspend fun getContractList(page: Int, pageSize: Int): PagedData<ContractResponse> {
+        LogUtil.d("DemoRepository", "getContractList called: page=$page, pageSize=$pageSize")
+        return try {
+            val response = api.getContractList(
+                start = ((page - 1) * pageSize).toLong(),
+                limit = pageSize.toLong(),
+                pageindex = page.toLong(),
+                where = "{}"
+            )
+            val rows = response.rows ?: emptyList()
+            val total = response.results
+            val hasMore = (page * pageSize) < total
+            
+            PagedData(
+                data = rows,
+                page = page,
+                totalPage = (total + pageSize - 1) / pageSize,
+                totalCount = total,
+                hasMore = hasMore
+            )
+        } catch (e: Exception) {
+            LogUtil.e("DemoRepository", "getContractList error: ${e.message}", e)
+            PagedData(emptyList(), page, 0, 0, false)
         }
-
-        return PagedData(
-            data = users,
-            page = page,
-            totalPage = totalPage,
-            totalCount = totalCount,
-            hasMore = page < totalPage
-        )
     }
 }
 
@@ -61,6 +65,14 @@ class DemoRepository : BaseRepository() {
  * 定义用户相关的网络请求
  */
 interface DemoApi {
-    @retrofit2.http.POST("api/User/LoginDriver")
-    suspend fun login(@retrofit2.http.Body request: LoginRequest): BaseResponse<LoginResponse>
+    @POST("api/User/LoginDriver")
+    suspend fun login(@Body request: LoginRequest): BaseResponse<LoginResponse>
+
+    @POST("api/Contract/List")
+    suspend fun getContractList(
+        @Query("start") start: Long,
+        @Query("limit") limit: Long,
+        @Query("pageindex") pageindex: Long,
+        @Query("where") where: String
+    ): BasePageResponse<ContractResponse>
 }

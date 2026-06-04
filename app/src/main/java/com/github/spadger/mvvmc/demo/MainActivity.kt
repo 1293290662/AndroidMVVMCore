@@ -3,10 +3,13 @@ package com.github.spadger.mvvmc.demo
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.github.spadger.mvvmc.BaseBindingActivity
+import com.github.spadger.mvvmc.demo.adapter.ContractListAdapter
 import com.github.spadger.mvvmc.demo.databinding.ActivityMainBinding
+import com.github.spadger.mvvmc.demo.model.ContractResponse
 import com.github.spadger.mvvmc.demo.model.LoginResponse
 import com.github.spadger.mvvmc.demo.vm.DemoViewModel
 import com.github.spadger.mvvmc.ext.observeResult
+import com.github.spadger.mvvmc.pager.PagingLoadState
 import com.github.spadger.mvvmc.util.DataStoreHolder
 import com.github.spadger.mvvmc.util.DataStoreKeys
 import kotlinx.coroutines.CoroutineScope
@@ -18,44 +21,44 @@ import java.util.Locale
 
 class MainActivity : BaseBindingActivity<DemoViewModel, ActivityMainBinding>() {
 
-    //private lateinit var adapter: UserListAdapter
+    private lateinit var adapter: ContractListAdapter
 
     override fun createViewBinding(): ActivityMainBinding {
         return ActivityMainBinding.inflate(layoutInflater)
     }
 
     override fun initView() {
-     /*   adapter = UserListAdapter()
+        adapter = ContractListAdapter()
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
-        binding.recyclerView.adapter = adapter*/
+        binding.recyclerView.adapter = adapter
     }
 
     override fun setupObservers() {
-       /* viewModel.userPager.dataList.observe(this) { users ->
-            adapter.submitList(users)
+        viewModel.contractPager.dataList.observe(this) { contracts ->
+            adapter.submitList(contracts)
         }
 
-        viewModel.userPager.loadState.observe(this) { state ->
+        viewModel.contractPager.loadState.observe(this) { state ->
             when (state) {
                 is PagingLoadState.LoadingFirst -> showLoading("加载中...")
-                is PagingLoadState.LoadingMore -> adapter.showLoading(true)
+                is PagingLoadState.LoadingMore -> adapter.showLoading(true, binding.recyclerView)
                 is PagingLoadState.Refreshing -> showLoading("刷新中...")
                 is PagingLoadState.Success -> {
                     hideLoading()
-                    adapter.showLoading(false)
+                    adapter.showLoading(false, binding.recyclerView)
                     binding.swipeRefreshLayout.isRefreshing = false
                     updateListInfo(state.page, state.totalCount, state.hasMore)
                 }
                 is PagingLoadState.Error -> {
                     hideLoading()
-                    adapter.showLoading(false)
+                    adapter.showLoading(false, binding.recyclerView)
                     binding.swipeRefreshLayout.isRefreshing = false
                     showError(state.message ?: "加载失败")
                 }
                 is PagingLoadState.Idle -> {}
             }
         }
-*/
+
         viewModel.loginBodyResult.observeResult(
             this,
             onSuccess = { handleLoginSuccess(it) },
@@ -66,7 +69,7 @@ class MainActivity : BaseBindingActivity<DemoViewModel, ActivityMainBinding>() {
 
     override fun initListener() {
         binding.swipeRefreshLayout.setOnRefreshListener {
-            //viewModel.refreshUserList()
+            viewModel.refreshContractList()
         }
 
         binding.btnLogin.setOnClickListener {
@@ -80,31 +83,31 @@ class MainActivity : BaseBindingActivity<DemoViewModel, ActivityMainBinding>() {
         }
 
         binding.btnLoadData.setOnClickListener {
-            //viewModel.loadUserList()
+            viewModel.loadContractList()
         }
 
         binding.btnDataStore.setOnClickListener {
             initDataStore()
         }
 
-      /*  adapter.setOnItemClickListener { user ->
-            showInfo("点击用户: ${user.name}")
-        }*/
+        adapter.setOnItemClickListener { contract ->
+            showInfo("合同号: ${contract.Contract_Num}\n线路: ${contract.Line_Name}")
+        }
 
         binding.recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
                 val layoutManager = recyclerView.layoutManager as LinearLayoutManager
                 val lastVisibleItemPosition = layoutManager.findLastVisibleItemPosition()
-               /* if (lastVisibleItemPosition == adapter.itemCount - 1 && viewModel.userPager.hasMoreData) {
-                    viewModel.loadMoreUsers()
-                }*/
+                if (lastVisibleItemPosition == adapter.itemCount - 1 && viewModel.contractPager.hasMoreData) {
+                    viewModel.loadMoreContracts()
+                }
             }
         })
     }
 
     override fun initData() {
-        //viewModel.loadUserList()
+        viewModel.loadContractList()
     }
 
     private fun updateListInfo(page: Int, count: Int, hasMore: Boolean) {
@@ -122,57 +125,6 @@ class MainActivity : BaseBindingActivity<DemoViewModel, ActivityMainBinding>() {
             runOnUiThread { showSuccess("DataStore 测试完成") }
         }
     }
-
-    /*class UserListAdapter : ListAdapter<UserDetail, UserListAdapter.ViewHolder>(
-        object : DiffUtil.ItemCallback<UserDetail>() {
-            override fun areItemsTheSame(oldItem: UserDetail, newItem: UserDetail): Boolean = oldItem.id == newItem.id
-            override fun areContentsTheSame(oldItem: UserDetail, newItem: UserDetail): Boolean = oldItem == newItem
-        }
-    ) {
-        private var showLoading = false
-        private var onItemClickListener: ((UserDetail) -> Unit)? = null
-
-        fun setOnItemClickListener(listener: (UserDetail) -> Unit) {
-            onItemClickListener = listener
-        }
-
-        fun showLoading(show: Boolean) {
-            showLoading = show
-            notifyItemChanged(itemCount)
-        }
-
-        override fun getItemCount(): Int = super.getItemCount() + if (showLoading) 1 else 0
-
-        override fun getItemViewType(position: Int): Int = if (position == super.getItemCount()) 1 else 0
-
-        override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): ViewHolder {
-            return if (viewType == 0) {
-                val view = LayoutInflater.from(parent.context)
-                    .inflate(android.R.layout.simple_list_item_2, parent, false)
-                ViewHolder(view)
-            } else {
-                val view = LayoutInflater.from(parent.context)
-                    .inflate(R.layout.loading_item, parent, false)
-                ViewHolder(view)
-            }
-        }
-
-        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-            if (position < super.getItemCount()) {
-                val user = getItem(position)
-                holder.bind(user)
-                holder.itemView.setOnClickListener { onItemClickListener?.invoke(user) }
-            }
-        }
-
-        class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-            fun bind(user: UserDetail) {
-                itemView.findViewById<TextView>(android.R.id.text1)?.text = user.name
-                itemView.findViewById<TextView>(android.R.id.text2)?.text = user.email
-            }
-        }
-    }
-*/
     override fun createViewModel(): DemoViewModel {
         return obtainViewModel()
     }

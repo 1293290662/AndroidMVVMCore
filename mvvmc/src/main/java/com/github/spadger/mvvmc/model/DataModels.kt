@@ -36,7 +36,7 @@ open class BaseResponse<T>(
     @SerializedName("Obj")
     open override val data: T? = null
 ) : BaseData<T> {
-    override val isSuccess: Boolean get() = code == 0 || code == 200 || active
+    override val isSuccess: Boolean get() = code == 0 || code == 200 || active || data !=null
 
     fun getErrorMessage(): String = message ?: "请求失败"
 }
@@ -54,7 +54,7 @@ data class PageResponse<T>(
     @SerializedName("msg")
     override val message: String? = null,
 
-    @SerializedName("Obj")
+    @SerializedName("data")
     override val data: PageData<T>? = null
 ) : BaseResponse<PageData<T>>(active, code, message, data)
 
@@ -81,6 +81,17 @@ data class PageData<T>(
 
     fun isNotEmpty(): Boolean = !isEmpty()
 }
+
+/**
+ * 通用分页响应模型（用于 { "results": X, "rows": [...] } 格式）
+ */
+open class BasePageResponse<T>(
+    @SerializedName("results")
+    open val results: Int = 0,
+
+    @SerializedName("rows")
+    open val rows: List<T>? = null
+)
 
 /**
  * ID 请求模型

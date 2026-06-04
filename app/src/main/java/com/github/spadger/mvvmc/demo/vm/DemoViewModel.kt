@@ -9,10 +9,11 @@ package com.github.spadger.mvvmc.demo.vm
 
 import androidx.lifecycle.MutableLiveData
 import com.github.spadger.mvvmc.vm.BaseViewModel
+import com.github.spadger.mvvmc.demo.model.ContractResponse
 import com.github.spadger.mvvmc.demo.model.LoginRequest
 import com.github.spadger.mvvmc.demo.model.LoginResponse
-import com.github.spadger.mvvmc.demo.model.UserDetail
 import com.github.spadger.mvvmc.demo.repository.DemoRepository
+import com.github.spadger.mvvmc.util.LogUtil
 import com.github.spadger.mvvmc.vm.launchVmRequest
 import com.github.spadger.mvvmc.pager.Pager
 import com.github.spadger.mvvmc.pager.createPager
@@ -22,8 +23,8 @@ class DemoViewModel : BaseViewModel() {
 
     private val repository = DemoRepository()
 
-    val userPager: Pager<UserDetail> = createPager(pageSize = 10) { page, size ->
-        repository.getUserList(page, size)
+    val contractPager: Pager<ContractResponse> = createPager(pageSize = 10) { page, size ->
+        repository.getContractList(page, size)
     }
 
     var loginBodyResult: VmLiveData<LoginResponse> = MutableLiveData()
@@ -32,15 +33,16 @@ class DemoViewModel : BaseViewModel() {
         launchVmRequest({ repository.login(LoginRequest(username, password)) }, loginBodyResult)
     }
 
-    fun loadUserList() {
-        userPager.loadData()
+    fun loadContractList() {
+        LogUtil.d("DemoViewModel", "loadContractList called")
+        contractPager.loadData()
     }
 
-    fun loadMoreUsers() {
-        userPager.loadMore()
+    fun loadMoreContracts() {
+        contractPager.loadMore()
     }
 
-    fun refreshUserList() {
-        userPager.refresh()
+    fun refreshContractList() {
+        contractPager.refresh()
     }
 }

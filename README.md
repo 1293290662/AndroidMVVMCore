@@ -11,17 +11,16 @@
 3. [安装指南](#安装指南)
 4. [快速开始](#快速开始)
 5. [基类组件](#基类组件)
-6. [权限管理](#权限管理)
+6. [分页组件](#分页组件)
 7. [网络请求](#网络请求)
 8. [数据存储](#数据存储)
 9. [工具类](#工具类)
-10. [状态管理](#状态管理)
-11. [导航管理](#导航管理)
-12. [系统栏管理](#系统栏管理)
-13. [表单验证](#表单验证)
-14. [日期处理](#日期处理)
-15. [项目结构](#项目结构)
-16. [许可证](#许可证)
+10. [导航管理](#导航管理)
+11. [系统栏管理](#系统栏管理)
+12. [表单验证](#表单验证)
+13. [日期处理](#日期处理)
+14. [项目结构](#项目结构)
+15. [许可证](#许可证)
 
 ---
 
@@ -41,11 +40,11 @@ GitHub: https://github.com/ZhangYuanYang-spadger
 - **BaseBindingFragment**: 支持 View Binding 的 Fragment
 - **BaseViewModel**: ViewModel 基类，提供协程和错误处理
 - **BaseRepository**: Repository 基类，封装网络请求
-- **StateViewModel**: 带状态管理的 ViewModel
+- **Pager**: 可组合的分页管理器，支持多个分页数据源
 - **网络组件**: Retrofit、OkHttp 配置和拦截器
 - **结果处理**: 通用的 Result 和 NetworkResponse 封装
 - **DataStore**: Jetpack DataStore 封装（替代 SharedPreferences）
-- **UI 工具**: LogUtil、ToastUtil、DialogBuilder、StateLayout
+- **UI 工具**: LogUtil、ToastUtil、DialogBuilder
 - **导航管理**: Navigator 封装 Navigation Component
 - **系统栏**: Edge-to-Edge 支持和 Insets 处理
 - **表单验证**: 常用验证工具（手机号、邮箱、身份证等）
@@ -92,7 +91,7 @@ class App : Application() {
         RetrofitProvider.init("https://api.example.com/")
         
         // 初始化 DataStore
-        DataStoreHolder.init(this)
+        DataStoreManager.init(this)
         
         // 开启调试日志
         LogUtil.isDebug = BuildConfig.DEBUG
@@ -122,16 +121,16 @@ class MainActivity : BaseBindingActivity<MainViewModel, ActivityMainBinding>() {
     }
 
     override fun setupObservers() {
-        viewModel.state.observeResult(
+        viewModel.loginBodyResult.observeResult(
             this,
-            onSuccess = { data -> handleSuccess(data) },
-            onError = { e -> handleError(e) },
+            onSuccess = { handleLoginSuccess(it) },
+            onError = { handleError(it) },
             onLoading = { showLoading() }
         )
     }
 
     override fun initData() {
-        viewModel.loadData()
+        viewModel.login("username", "password")
     }
 }
 ```
@@ -141,16 +140,10 @@ class MainActivity : BaseBindingActivity<MainViewModel, ActivityMainBinding>() {
 ```kotlin
 class MainViewModel : BaseViewModel() {
     
-    val data = MutableLiveData<String>()
+    var loginBodyResult: VmLiveData<LoginResponse> = MutableLiveData()
     
-    fun loadData() {
-        launchOnIO {
-            val result = repository.fetchData()
-            when (result) {
-                is Result.Success -> data.value = result.data
-                is Result.Error -> handleError(result.exception)
-            }
-        }
+    fun login(username: String, password: String) {
+        launchVmRequest({ repository.login(LoginRequest(username, password)) }, loginBodyResult)
     }
 }
 ```
@@ -162,8 +155,12 @@ class MainRepository : BaseRepository() {
     
     private val apiService = createApi<ApiService>()
     
-    suspend fun fetchData(): Result<String> {
-        return apiCall { apiService.getData() }
+    suspend fun login(request: LoginRequest): BaseResponse<LoginResponse> {
+        return try {
+            apiService.login(request)
+        } catch (e: Exception) {
+            BaseResponse(active = false, code = -1, message = e.message, data = null)
+        }
     }
 }
 ```
@@ -171,7 +168,7 @@ class MainRepository : BaseRepository() {
 ### 权限请求
 
 ```kotlin
-requestPermissions(PermissionConstants.STORAGE_PERMISSIONS, object : BaseActivity.PermissionCallback {
+requestPermissions(PermissionConstants.STORAGE_PERMISSIONS, object : PermissionCallback {
     override fun onGranted() {
         showSuccess("权限已授予")
     }
@@ -184,29 +181,60 @@ requestPermissions(PermissionConstants.STORAGE_PERMISSIONS, object : BaseActivit
 
 ---
 
-## 权限管理
+## 分页组件
 
-### 预定义权限常量
+### 在 ViewModel 中创建分页器
 
 ```kotlin
-// 单个权限
-PermissionConstants.CAMERA                 // 相机权限
-PermissionConstants.RECORD_AUDIO           // 录音权限
-PermissionConstants.POST_NOTIFICATIONS     // 通知权限（Android 13+）
-
-// 权限组（自动适配不同 Android 版本）
-PermissionConstants.STORAGE_PERMISSIONS     // 存储权限组
-PermissionConstants.LOCATION_PERMISSIONS    // 位置权限组
-PermissionConstants.CONTACTS_PERMISSIONS    // 联系人权限组
-PermissionConstants.SMS_PERMISSIONS         // 短信权限组
+class DemoViewModel : BaseViewModel() {
+    
+    // 创建分页器
+    val contractPager: Pager<ContractResponse> = createPager(pageSize = 10) { page, size ->
+        repository.getContractList(page, size)
+    }
+    
+    // 加载第一页
+    fun loadContractList() {
+        contractPager.loadData()
+    }
+    
+    // 加载更多
+    fun loadMoreContracts() {
+        contractPager.loadMore()
+    }
+    
+    // 刷新
+    fun refreshContractList() {
+        contractPager.refresh()
+    }
+}
 ```
 
-### 权限回调接口
+### 在 Activity/Fragment 中使用
 
 ```kotlin
-interface PermissionCallback {
-    fun onGranted()                                    // 所有权限都已授予
-    fun onDenied(deniedPermissions: List<String>, shouldShowRationale: Boolean)  // 权限被拒绝
+// 观察数据变化
+viewModel.contractPager.dataList.observe(this) { contracts ->
+    adapter.submitList(contracts)
+}
+
+// 观察加载状态
+viewModel.contractPager.loadState.observe(this) { state ->
+    when (state) {
+        is PagingLoadState.LoadingFirst -> showLoading("加载中...")
+        is PagingLoadState.LoadingMore -> adapter.showLoading(true)
+        is PagingLoadState.Refreshing -> swipeRefreshLayout.isRefreshing = true
+        is PagingLoadState.Success -> {
+            hideLoading()
+            adapter.showLoading(false)
+            swipeRefreshLayout.isRefreshing = false
+        }
+        is PagingLoadState.Error -> {
+            hideLoading()
+            showError(state.message ?: "加载失败")
+        }
+        is PagingLoadState.Idle -> {}
+    }
 }
 ```
 
@@ -218,22 +246,36 @@ interface PermissionCallback {
 
 ```kotlin
 interface ApiService {
-    @GET("users")
-    suspend fun getUsers(): NetworkResponse<List<User>>
+    @POST("api/User/LoginDriver")
+    suspend fun login(@Body request: LoginRequest): BaseResponse<LoginResponse>
     
-    @GET("users/{id}")
-    suspend fun getUser(@Path("id") id: String): NetworkResponse<User>
+    @POST("api/Contract/List")
+    suspend fun getContractList(
+        @Query("start") start: Long,
+        @Query("limit") limit: Long,
+        @Query("pageindex") pageindex: Long,
+        @Query("where") where: String
+    ): ContractPageResponse
 }
 ```
 
-### 处理响应
+### 响应模型
 
 ```kotlin
-viewModel.state.observeResult(
-    this,
-    onSuccess = { user -> handleSuccess(user) },
-    onError = { e -> handleError(e) },
-    onLoading = { showLoading() }
+open class BaseResponse<T>(
+    val active: Boolean,
+    val code: Int = 0,
+    override val message: String? = null,
+    override val data: T? = null
+) : BaseData<T> {
+    override val isSuccess: Boolean get() = code == 0 || code == 200 || active
+}
+
+class ContractPageResponse : BasePageResponse<ContractResponse>()
+
+open class BasePageResponse<T>(
+    val results: Int = 0,
+    val rows: List<T>? = null
 )
 ```
 
@@ -246,15 +288,15 @@ viewModel.state.observeResult(
 ```kotlin
 // 写入数据
 CoroutineScope(Dispatchers.IO).launch {
-    DataStoreHolder.getInstance().putString("token", "abc123")
-    DataStoreHolder.getInstance().putBoolean("isLoggedIn", true)
+    DataStoreManager.getInstance().putString("token", "abc123")
+    DataStoreManager.getInstance().putBoolean("isLoggedIn", true)
 }
 
 // 读取数据
-val token = DataStoreHolder.getInstance().getString("token")
+val token = DataStoreManager.getInstance().getString("token")
 
 // 监听数据变化
-DataStoreHolder.getInstance().getStringFlow("token")
+DataStoreManager.getInstance().getStringFlow("token")
     .collect { token ->
         // 处理 token 变化
     }
@@ -289,35 +331,6 @@ ToastUtil.showWarning(context, "警告")
 ```kotlin
 DialogBuilder.showMessage(context, "消息内容")
 DialogBuilder.showConfirm(context, "确认删除？", onConfirm, onCancel)
-```
-
----
-
-## 状态管理
-
-### StateLayout
-
-```xml
-<com.github.spadger.mvvmc.widget.StateLayout
-    android:id="@+id/stateLayout"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
-    
-    <!-- 内容布局 -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
-    
-</com.github.spadger.mvvmc.widget.StateLayout>
-```
-
-```kotlin
-stateLayout.showLoading()        // 显示加载中
-stateLayout.showContent()        // 显示内容
-stateLayout.showEmpty("暂无数据")  // 显示空状态
-stateLayout.showError("加载失败")  // 显示错误
-stateLayout.showNoNetwork()      // 显示无网络
-stateLayout.setOnErrorRetryClickListener { loadData() }  // 设置重试点击
 ```
 
 ---
@@ -409,16 +422,17 @@ mvvmc/
 ├── BaseFragment.kt              # Fragment 基类
 ├── BaseBindingActivity.kt       # View Binding Activity
 ├── BaseBindingFragment.kt       # View Binding Fragment
-├── BaseViewModel.kt             # ViewModel 基类
 ├── BaseRepository.kt            # Repository 基类
 ├── Result.kt                    # 结果封装
 ├── NetworkResponse.kt           # 网络响应封装
 ├── ErrorHandler.kt              # 错误处理
 ├── ext/
 │   ├── LiveDataExt.kt           # LiveData 扩展
-│   └── ViewInsetsExt.kt         # View Insets 扩展
+│   ├── ViewInsetsExt.kt         # View Insets 扩展
+│   └── VmStateExt.kt            # ViewModel 状态扩展
 ├── model/
-│   └── DataModels.kt            # 数据模型
+│   ├── BaseData.kt              # 基础数据接口
+│   └── DataModels.kt            # 数据模型（BaseResponse、PageResponse等）
 ├── nav/
 │   ├── Navigator.kt             # 导航管理器
 │   ├── NavOptionsFactory.kt     # 导航选项
@@ -427,6 +441,8 @@ mvvmc/
 │   ├── RetrofitProvider.kt      # Retrofit 配置
 │   ├── OkHttpProvider.kt        # OkHttp 配置
 │   └── HeaderInterceptor.kt     # 请求头拦截器
+├── pager/
+│   └── Pager.kt                 # 分页管理器
 ├── util/
 │   ├── LogUtil.kt               # 日志工具
 │   ├── ToastUtil.kt             # Toast 工具
@@ -436,10 +452,8 @@ mvvmc/
 │   ├── SystemBarHelper.kt       # 系统栏工具
 │   ├── DateUtil.kt              # 日期工具
 │   └── ValidatorUtil.kt         # 验证工具
-├── vm/
-│   └── StateViewModel.kt        # 状态管理 ViewModel
-└── widget/
-    └── StateLayout.kt           # 状态管理布局
+└── vm/
+    └── BaseViewModel.kt         # ViewModel 基类
 ```
 
 ---
