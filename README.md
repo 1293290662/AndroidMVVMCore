@@ -36,11 +36,12 @@ GitHub: https://github.com/ZhangYuanYang-spadger
 
 - **BaseActivity**: Activity 基类，支持 ViewModel、生命周期管理和权限请求
 - **BaseFragment**: Fragment 基类，支持 ViewModel 和懒加载
-- **BaseBindingActivity**: 支持 View Binding 的 Activity
-- **BaseBindingFragment**: 支持 View Binding 的 Fragment
+- **BaseBindingActivity**: 支持 View Binding 的 Activity（自动绑定，泛型方式）
+- **BaseBindingFragment**: 支持 View Binding 的 Fragment（自动绑定，泛型方式）
 - **BaseViewModel**: ViewModel 基类，提供协程和错误处理
 - **BaseRepository**: Repository 基类，封装网络请求
 - **Pager**: 可组合的分页管理器，支持多个分页数据源
+- **PagerExt**: 分页组件扩展函数，简化观察和数据绑定
 - **网络组件**: Retrofit、OkHttp 配置和拦截器
 - **结果处理**: 通用的 Result 和 NetworkResponse 封装
 - **DataStore**: Jetpack DataStore 封装（替代 SharedPreferences）
@@ -72,7 +73,7 @@ dependencyResolutionManagement {
 
 ```gradle
 dependencies {
-    implementation("com.github.ZhangYuanYang-spadger:AndroidMVVMCore:1.0.0")
+    implementation("com.github.ZhangYuanYang-spadger:AndroidMVVMCore:1.0.2")
 }
 ```
 
@@ -91,7 +92,7 @@ class App : Application() {
         RetrofitProvider.init("https://api.example.com/")
         
         // 初始化 DataStore
-        DataStoreManager.init(this)
+        DataStoreManager.getInstance().init(this)
         
         // 开启调试日志
         LogUtil.isDebug = BuildConfig.DEBUG
@@ -105,32 +106,58 @@ class App : Application() {
 
 ### BaseBindingActivity（推荐）
 
+使用双泛型 `<VM, VB>`，通过反射自动绑定 ViewBinding，无需手动实现 `createViewBinding()`：
+
 ```kotlin
 class MainActivity : BaseBindingActivity<MainViewModel, ActivityMainBinding>() {
 
-    override fun createViewBinding(): ActivityMainBinding {
-        return ActivityMainBinding.inflate(layoutInflater)
-    }
-
     override fun initView() {
-        binding.tvTitle.text = "你好世界"
+        mBinding.tvTitle.text = "你好世界"
     }
 
-    override fun createViewModel(): MainViewModel {
-        return obtainViewModel()
-    }
-
-    override fun setupObservers() {
-        viewModel.loginBodyResult.observeResult(
-            this,
+    override fun initObserve() {
+        mVM.loginResult.observeResult(
+            mActivity,
             onSuccess = { handleLoginSuccess(it) },
-            onError = { handleError(it) },
-            onLoading = { showLoading() }
+            onError = { showError("登录失败: ${it.message}") },
+            onLoading = { showLoading("登录中...") }
         )
     }
 
     override fun initData() {
-        viewModel.login("username", "password")
+        mVM.login("username", "password")
+    }
+
+    override fun initListener() {
+        mBinding.btnSubmit.setOnClickListener {
+            val username = mBinding.etUsername.text.toString()
+            val password = mBinding.etPassword.text.toString()
+            if (username.isNotBlank() && password.isNotBlank()) {
+                mVM.login(username, password)
+            } else {
+                showWarning("请输入用户名和密码")
+            }
+        }
+    }
+}
+```
+
+### BaseBindingFragment
+
+```kotlin
+class ContractListFragment : BaseBindingFragment<ContractViewModel, FragmentContractListBinding>() {
+
+    override fun initView() {
+        mBinding.recyclerView.layoutManager = LinearLayoutManager(mContext)
+        mBinding.recyclerView.adapter = adapter
+    }
+
+    override fun initObserve() {
+        mVM.contractPager.observeData(viewLifecycleOwner) { adapter.submitList(it) }
+    }
+
+    override fun initData() {
+        mVM.contractPager.loadData()
     }
 }
 ```
@@ -138,12 +165,18 @@ class MainActivity : BaseBindingActivity<MainViewModel, ActivityMainBinding>() {
 ### BaseViewModel
 
 ```kotlin
-class MainViewModel : BaseViewModel() {
+class DemoViewModel : BaseViewModel() {
     
-    var loginBodyResult: VmLiveData<LoginResponse> = MutableLiveData()
+    // 使用 launchVmRequest 封装网络请求
+    var loginResult: VmLiveData<LoginResponse> = MutableLiveData()
     
     fun login(username: String, password: String) {
-        launchVmRequest({ repository.login(LoginRequest(username, password)) }, loginBodyResult)
+        launchVmRequest({ repository.login(username, password) }, loginResult)
+    }
+    
+    // 创建分页器
+    val contractPager: Pager<ContractResponse> = createPager(pageSize = 10) { page, size ->
+        repository.getContractList(page, size)
     }
 }
 ```
@@ -151,13 +184,13 @@ class MainViewModel : BaseViewModel() {
 ### BaseRepository
 
 ```kotlin
-class MainRepository : BaseRepository() {
+class DemoRepository : BaseRepository() {
     
     private val apiService = createApi<ApiService>()
     
-    suspend fun login(request: LoginRequest): BaseResponse<LoginResponse> {
+    suspend fun login(username: String, password: String): BaseResponse<LoginResponse> {
         return try {
-            apiService.login(request)
+            apiService.login(LoginRequest(username, password))
         } catch (e: Exception) {
             BaseResponse(active = false, code = -1, message = e.message, data = null)
         }
@@ -183,7 +216,9 @@ requestPermissions(PermissionConstants.STORAGE_PERMISSIONS, object : PermissionC
 
 ## 分页组件
 
-### 在 ViewModel 中创建分页器
+### Pager 分页器
+
+在 ViewModel 中创建分页器：
 
 ```kotlin
 class DemoViewModel : BaseViewModel() {
@@ -210,32 +245,36 @@ class DemoViewModel : BaseViewModel() {
 }
 ```
 
-### 在 Activity/Fragment 中使用
+### 使用 PagerExt 扩展函数（推荐）
+
+在 Activity/Fragment 中使用简化观察：
 
 ```kotlin
 // 观察数据变化
-viewModel.contractPager.dataList.observe(this) { contracts ->
-    adapter.submitList(contracts)
-}
+mVM.contractPager.observeData(mActivity) { adapter.submitList(it) }
 
 // 观察加载状态
-viewModel.contractPager.loadState.observe(this) { state ->
-    when (state) {
-        is PagingLoadState.LoadingFirst -> showLoading("加载中...")
-        is PagingLoadState.LoadingMore -> adapter.showLoading(true)
-        is PagingLoadState.Refreshing -> swipeRefreshLayout.isRefreshing = true
-        is PagingLoadState.Success -> {
-            hideLoading()
-            adapter.showLoading(false)
-            swipeRefreshLayout.isRefreshing = false
-        }
-        is PagingLoadState.Error -> {
-            hideLoading()
-            showError(state.message ?: "加载失败")
-        }
-        is PagingLoadState.Idle -> {}
+mVM.contractPager.observeState(
+    owner = mActivity,
+    onLoading = { showLoading("加载中...") },
+    onLoadingMore = { adapter.showLoading(true) },
+    onRefreshing = { swipeRefreshLayout.isRefreshing = true },
+    onSuccess = { page, totalCount, hasMore ->
+        hideLoading()
+        adapter.showLoading(false)
+        swipeRefreshLayout.isRefreshing = false
+        updateListInfo(page, totalCount, hasMore)
+    },
+    onError = { message ->
+        hideLoading()
+        adapter.showLoading(false)
+        swipeRefreshLayout.isRefreshing = false
+        showError(message ?: "加载失败")
     }
-}
+)
+
+// 自动设置 RecyclerView 滚动加载更多
+mVM.contractPager.setupRecyclerViewPaging(binding.recyclerView)
 ```
 
 ---
@@ -262,6 +301,7 @@ interface ApiService {
 ### 响应模型
 
 ```kotlin
+// 通用响应模型
 open class BaseResponse<T>(
     val active: Boolean,
     val code: Int = 0,
@@ -271,12 +311,14 @@ open class BaseResponse<T>(
     override val isSuccess: Boolean get() = code == 0 || code == 200 || active
 }
 
-class ContractPageResponse : BasePageResponse<ContractResponse>()
-
+// 通用分页响应模型（用于 { "results": X, "rows": [...] } 格式）
 open class BasePageResponse<T>(
     val results: Int = 0,
     val rows: List<T>? = null
 )
+
+// 合同列表响应模型（继承通用分页响应）
+class ContractPageResponse : BasePageResponse<ContractResponse>()
 ```
 
 ---
@@ -314,6 +356,8 @@ LogUtil.i("信息日志")
 LogUtil.w("警告日志")
 LogUtil.e("错误日志", exception)
 LogUtil.json(jsonString)
+LogUtil.obj(someObject)  // 直接输出对象为 JSON
+someObject.log()        // 扩展方法，直接输出
 ```
 
 ### ToastUtil
@@ -420,40 +464,45 @@ DateUtil.formatDuration(3661)           // 格式化时长（1小时1分钟1秒�
 mvvmc/
 ├── BaseActivity.kt              # Activity 基类
 ├── BaseFragment.kt              # Fragment 基类
-├── BaseBindingActivity.kt       # View Binding Activity
-├── BaseBindingFragment.kt       # View Binding Fragment
+├── BaseBindingActivity.kt       # View Binding Activity（自动绑定）
+├── BaseBindingFragment.kt       # View Binding Fragment（自动绑定）
 ├── BaseRepository.kt            # Repository 基类
 ├── Result.kt                    # 结果封装
 ├── NetworkResponse.kt           # 网络响应封装
 ├── ErrorHandler.kt              # 错误处理
 ├── ext/
 │   ├── LiveDataExt.kt           # LiveData 扩展
-│   ├── ViewInsetsExt.kt         # View Insets 扩展
+│   ├── ViewInsetsExt.kt          # View Insets 扩展
 │   └── VmStateExt.kt            # ViewModel 状态扩展
 ├── model/
 │   ├── BaseData.kt              # 基础数据接口
-│   └── DataModels.kt            # 数据模型（BaseResponse、PageResponse等）
+│   └── DataModels.kt            # 数据模型（BaseResponse、BasePageResponse等）
 ├── nav/
-│   ├── Navigator.kt             # 导航管理器
+│   ├── Navigator.kt              # 导航管理器
 │   ├── NavOptionsFactory.kt     # 导航选项
-│   └── NavParams.kt             # 导航参数
+│   └── NavParams.kt              # 导航参数
 ├── network/
-│   ├── RetrofitProvider.kt      # Retrofit 配置
-│   ├── OkHttpProvider.kt        # OkHttp 配置
-│   └── HeaderInterceptor.kt     # 请求头拦截器
+│   ├── RetrofitProvider.kt       # Retrofit 配置
+│   ├── OkHttpProvider.kt         # OkHttp 配置
+│   ├── HeaderInterceptor.kt      # 请求头拦截器
+│   └── ApiClient.kt              # 灵活的 API 客户端配置
 ├── pager/
-│   └── Pager.kt                 # 分页管理器
+│   ├── Pager.kt                  # 分页管理器
+│   └── PagerExt.kt               # 分页组件扩展函数
+├── state/
+│   ├── StateManager.kt           # 统一状态管理
+│   └── GlobalErrorHandler.kt     # 全局错误处理
 ├── util/
-│   ├── LogUtil.kt               # 日志工具
-│   ├── ToastUtil.kt             # Toast 工具
-│   ├── DialogBuilder.kt         # 对话框工具
-│   ├── DataStoreManager.kt      # DataStore 封装
-│   ├── PermissionHelper.kt      # 权限工具
-│   ├── SystemBarHelper.kt       # 系统栏工具
-│   ├── DateUtil.kt              # 日期工具
-│   └── ValidatorUtil.kt         # 验证工具
+│   ├── LogUtil.kt                # 日志工具
+│   ├── ToastUtil.kt              # Toast 工具
+│   ├── DialogBuilder.kt          # 对话框工具
+│   ├── DataStoreManager.kt       # DataStore 封装
+│   ├── PermissionHelper.kt       # 权限工具
+│   ├── SystemBarHelper.kt         # 系统栏工具
+│   ├── DateUtil.kt               # 日期工具
+│   └── ValidatorUtil.kt          # 验证工具
 └── vm/
-    └── BaseViewModel.kt         # ViewModel 基类
+    └── BaseViewModel.kt          # ViewModel 基类
 ```
 
 ---
@@ -470,4 +519,4 @@ MIT License
 
 ---
 
-*版本: 1.0.0*
+*版本: 1.0.2*

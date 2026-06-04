@@ -84,6 +84,8 @@ abstract class BaseFragment<VM : ViewModel> : Fragment() {
 
     protected open fun showLoading() {}
 
+    protected open fun showLoading(message: String) {}
+
     protected open fun hideLoading() {}
 
     protected fun showError(message: String) {
