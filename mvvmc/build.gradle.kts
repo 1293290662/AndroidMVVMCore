@@ -70,7 +70,7 @@ afterEvaluate {
 
                 groupId = "com.github.ZhangYuanYang-spadger"
                     artifactId = "AndroidMVVMCore"
-                    version = "1.0.2"
+                    version = "1.0.3"
 
                     pom {
                         name.set("MVVMCore")
