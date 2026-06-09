@@ -10,6 +10,8 @@ package com.github.spadger.mvvmc.ext
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.Observer
+import com.github.spadger.mvvmc.BaseActivity
+import com.github.spadger.mvvmc.BaseFragment
 import com.github.spadger.mvvmc.Result
 import com.github.spadger.mvvmc.util.LogUtil
 
@@ -165,5 +167,139 @@ fun <T> LiveData<T>.observeWithLog(owner: LifecycleOwner, tag: String, onChanged
     observe(owner) { data ->
         LogUtil.d(tag, "Data changed: $data")
         onChanged(data)
+    }
+}
+
+/**
+ * 带加载对话框的观察方法（Activity）
+ * 自动处理 Loading、Success、Error 状态
+ * @param activity BaseActivity
+ * @param tips 是否显示错误提示
+ * @param onSuccess 成功回调
+ * @param onComplete 完成回调（无论成功失败都会调用）
+ */
+@androidx.annotation.MainThread
+inline fun <T> LiveData<Result<T>>.observeWithLoading(
+    activity: BaseActivity,
+    tips: Boolean = true,
+    crossinline onSuccess: (T) -> Unit,
+    crossinline onComplete: () -> Unit = {}
+) {
+    observe(activity) { result ->
+        when (result) {
+            is Result.Loading -> {
+                activity.showLoadingDialog()
+            }
+            is Result.Success -> {
+                onComplete()
+                onSuccess(result.data)
+                activity.dismissLoadingDialog()
+            }
+            is Result.Error -> {
+                if (tips) activity.showToast(result.err.message ?: "请求失败")
+                activity.dismissLoadingDialog()
+                onComplete()
+            }
+            is Result.Idle -> {
+            }
+        }
+    }
+}
+
+/**
+ * 带加载对话框的观察方法（Fragment）
+ * 自动处理 Loading、Success、Error 状态
+ * @param fragment BaseFragment
+ * @param tips 是否显示错误提示
+ * @param onSuccess 成功回调
+ * @param onComplete 完成回调（无论成功失败都会调用）
+ */
+@androidx.annotation.MainThread
+inline fun <T> LiveData<Result<T>>.observeWithLoading(
+    fragment: BaseFragment,
+    tips: Boolean = true,
+    crossinline onSuccess: (T) -> Unit,
+    crossinline onComplete: () -> Unit = {}
+) {
+    observe(fragment.viewLifecycleOwner) { result ->
+        when (result) {
+            is Result.Loading -> {
+                fragment.showLoadingDialog()
+            }
+            is Result.Success -> {
+                onComplete()
+                onSuccess(result.data)
+                fragment.dismissLoadingDialog()
+            }
+            is Result.Error -> {
+                if (tips) fragment.showToast(result.err.message ?: "请求失败")
+                fragment.dismissLoadingDialog()
+                onComplete()
+            }
+            is Result.Idle -> {
+            }
+        }
+    }
+}
+
+/**
+ * 不带加载对话框的观察方法（Activity）
+ * 只处理 Success、Error 状态
+ * @param activity BaseActivity
+ * @param tips 是否显示错误提示
+ * @param onSuccess 成功回调
+ * @param onComplete 完成回调（无论成功失败都会调用）
+ */
+@androidx.annotation.MainThread
+inline fun <T> LiveData<Result<T>>.observeWithoutLoading(
+    activity: BaseActivity,
+    tips: Boolean = true,
+    crossinline onSuccess: (T) -> Unit,
+    crossinline onComplete: () -> Unit = {}
+) {
+    observe(activity) { result ->
+        when (result) {
+            is Result.Success -> {
+                onComplete()
+                onSuccess(result.data)
+            }
+            is Result.Error -> {
+                if (tips) activity.showToast(result.err.message ?: "请求失败")
+                onComplete()
+            }
+            else -> {
+            }
+        }
+    }
+}
+
+/**
+ * 不带加载对话框的观察方法（Fragment）
+ * 只处理 Success、Error 状态
+ * @param fragment BaseFragment
+ * @param tips 是否显示错误提示
+ * @param onSuccess 成功回调
+ * @param onComplete 完成回调（无论成功失败都会调用）
+ */
+@androidx.annotation.MainThread
+inline fun <T> LiveData<Result<T>>.observeWithoutLoading(
+    fragment: BaseFragment,
+    tips: Boolean = true,
+    crossinline onSuccess: (T) -> Unit,
+    crossinline onComplete: () -> Unit = {}
+) {
+    observe(fragment.viewLifecycleOwner) { result ->
+        when (result) {
+            is Result.Success -> {
+                onComplete()
+                onSuccess(result.data)
+            }
+            is Result.Error -> {
+                if (tips) fragment.showToast(result.err.message ?: "请求失败")
+                onComplete()
+            }
+            else -> {
+            }
+        }
     }
 }

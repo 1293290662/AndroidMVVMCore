@@ -1,76 +1,36 @@
-/**
- * @author ZhangYuanYang
- * @email 1293290662@qq.com
- * @date 2024/01/01
- * 
- * Activity基类，提供完整的生命周期管理和通用UI操作方法
- * 
- * @param VM ViewModel类型参数
- */
 package com.github.spadger.mvvmc
 
 import android.Manifest
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.core.app.ActivityCompat
 
 import com.github.spadger.mvvmc.util.LogUtil
 import com.github.spadger.mvvmc.util.SystemBarHelper
 import com.github.spadger.mvvmc.util.ToastUtil
 
-abstract class BaseActivity<VM : ViewModel> : AppCompatActivity() {
-    protected open val isEdgeToEdge: Boolean = true
+abstract class BaseActivity : AppCompatActivity() {
+    protected lateinit var mContext: Context
 
-    protected lateinit var mViewModel: VM
-
-    protected val viewModel: VM
-        get() = mViewModel
-
-    /**
-     * 权限请求回调接口
-     */
     interface PermissionCallback {
         fun onGranted()
         fun onDenied(deniedPermissions: List<String>, shouldShowRationale: Boolean)
     }
 
-    /**
-     * 权限请求 launcher（在 onCreate 中注册）
-     */
     private lateinit var permissionLauncher: ActivityResultLauncher<Array<String>>
     private var currentPermissionCallback: PermissionCallback? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        // 必须在 onCreate 期间注册 ActivityResultLauncher
+        mContext = this
         registerPermissionLauncher()
-        
-        beforeInit()
-        if (isEdgeToEdge) {
-            SystemBarHelper.enableEdgeToEdge(this)
-        }
-        mViewModel = createViewModel()
     }
 
-    /**
-     * 完成视图设置后的初始化（子类调用）
-     */
-    protected fun onViewReady() {
-        initView()
-        setupObservers()
-        initListener()
-        initData()
-        afterInit()
-    }
-
-    /**
-     * 注册权限请求 launcher
-     */
     private fun registerPermissionLauncher() {
         permissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions()
@@ -79,11 +39,6 @@ abstract class BaseActivity<VM : ViewModel> : AppCompatActivity() {
         }
     }
 
-    /**
-     * 请求权限
-     * @param permissions 要请求的权限数组
-     * @param callback 权限回调
-     */
     protected fun requestPermissions(permissions: Array<String>, callback: PermissionCallback?) {
         currentPermissionCallback = callback
         
@@ -99,9 +54,6 @@ abstract class BaseActivity<VM : ViewModel> : AppCompatActivity() {
         permissionLauncher.launch(ungrantedPermissions)
     }
 
-    /**
-     * 处理权限请求结果
-     */
     private fun handlePermissionResult(permissions: Map<String, Boolean>) {
         val grantedPermissions = permissions.filter { it.value }.keys.toList()
         val deniedPermissions = permissions.filter { !it.value }.keys.toList()
@@ -118,35 +70,62 @@ abstract class BaseActivity<VM : ViewModel> : AppCompatActivity() {
         currentPermissionCallback = null
     }
 
-    protected open fun beforeInit() {}
-
-    protected abstract fun initView()
-
-    protected open fun setupObservers() {}
-
-    protected open fun initListener() {}
-
-    protected open fun initData() {}
-
-    protected open fun afterInit() {}
-
-    protected abstract fun createViewModel(): VM
-
-    protected inline fun <reified T : ViewModel> obtainViewModel(): T {
-        return ViewModelProvider(this)[T::class.java]
+    fun startActivity(clz: Class<*>) {
+        val intent = Intent(this, clz)
+        startActivity(intent)
     }
 
-    protected open fun showLoading() {}
+    fun startActivity(clz: Class<*>, bundle: Bundle?) {
+        val intent = Intent()
+        intent.setClass(this, clz)
+        if (bundle != null) {
+            intent.putExtras(bundle)
+        }
+        startActivity(intent)
+    }
 
-    protected open fun showLoading(message: String) {}
+    fun startActivityForResult(clz: Class<*>, bundle: Bundle?, requestCode: Int) {
+        val intent = Intent()
+        intent.setClass(this, clz)
+        if (bundle != null) {
+            intent.putExtras(bundle)
+        }
+        startActivityForResult(intent, requestCode)
+    }
 
-    protected open fun hideLoading() {}
+    protected fun showLoading() {
+        showLoadingDialog()
+    }
+
+    protected fun showLoading(message: String) {
+        showLoadingDialog(message)
+    }
+
+    protected fun hideLoading() {
+        dismissLoadingDialog()
+    }
+
+    var mDialog: androidx.appcompat.app.AlertDialog? = null
+
+    fun showLoadingDialog(message: String = "加载中") {
+        mDialog?.dismiss()
+        mDialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setMessage(message)
+            .setCancelable(false)
+            .create()
+        mDialog?.show()
+    }
+
+    fun dismissLoadingDialog() {
+        mDialog?.dismiss()
+        mDialog = null
+    }
 
     protected fun showError(message: String) {
         ToastUtil.showError(this, message)
     }
 
-    protected fun showToast(message: String) {
+    fun showToast(message: String) {
         ToastUtil.showShort(this, message)
     }
 
@@ -185,37 +164,6 @@ abstract class BaseActivity<VM : ViewModel> : AppCompatActivity() {
     protected fun logE(message: String, throwable: Throwable) {
         LogUtil.e(javaClass.simpleName, message, throwable)
     }
-
-    override fun onStart() {
-        super.onStart()
-        onActivityStart()
-    }
-
-    override fun onResume() {
-        super.onResume()
-        onActivityResume()
-    }
-
-    override fun onPause() {
-        onActivityPause()
-        super.onPause()
-    }
-
-    override fun onStop() {
-        onActivityStop()
-        super.onStop()
-    }
-
-    override fun onDestroy() {
-        onActivityDestroy()
-        super.onDestroy()
-    }
-
-    protected open fun onActivityStart() {}
-    protected open fun onActivityResume() {}
-    protected open fun onActivityPause() {}
-    protected open fun onActivityStop() {}
-    protected open fun onActivityDestroy() {}
 
     protected fun enableEdgeToEdge() {
         SystemBarHelper.enableEdgeToEdge(this)

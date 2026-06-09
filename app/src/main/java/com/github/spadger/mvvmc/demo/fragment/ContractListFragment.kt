@@ -10,7 +10,7 @@ import com.github.spadger.mvvmc.pager.observeData
 import com.github.spadger.mvvmc.pager.observeState
 import com.github.spadger.mvvmc.pager.setupRecyclerViewPaging
 
-class ContractListFragment : BaseBindingFragment<DemoViewModel, FragmentContractListBinding>() {
+class ContractListFragment : BaseBindingFragment<FragmentContractListBinding, DemoViewModel>() {
 
     private lateinit var adapter: ContractListAdapter
 
@@ -29,17 +29,15 @@ class ContractListFragment : BaseBindingFragment<DemoViewModel, FragmentContract
 
         mVM.contractPager.observeState(
             owner = viewLifecycleOwner,
-            onLoading = { showLoading("加载中...") },
+            onLoading = {  },
             onLoadingMore = { adapter.showLoading(true, mBinding.recyclerView) },
             onRefreshing = { mBinding.swipeRefreshLayout.isRefreshing = true },
             onSuccess = { page, totalCount, hasMore ->
-                hideLoading()
                 adapter.showLoading(false, mBinding.recyclerView)
                 mBinding.swipeRefreshLayout.isRefreshing = false
                 updateListInfo(page, totalCount, hasMore)
             },
             onError = { message ->
-                hideLoading()
                 adapter.showLoading(false, mBinding.recyclerView)
                 mBinding.swipeRefreshLayout.isRefreshing = false
                 showError(message ?: "加载失败")
@@ -59,8 +57,6 @@ class ContractListFragment : BaseBindingFragment<DemoViewModel, FragmentContract
         mVM.contractPager.setupRecyclerViewPaging(mBinding.recyclerView)
     }
 
-    override fun hideLoading() {
-    }
 
     private fun updateListInfo(page: Int, totalCount: Int, hasMore: Boolean) {
         mBinding.tvPageInfo.text = "第 $page 页，共 $totalCount 条数据"
